@@ -12,6 +12,7 @@ export interface Bindings {
   ADMIN_EMAIL?: string;
   SEED_ADMIN_EMAIL?: string;
   SEED_ADMIN_PASSWORD?: string;
+  SEED_DEMO_CONTENT?: string;
 }
 
 export async function getEnv(): Promise<Bindings> {

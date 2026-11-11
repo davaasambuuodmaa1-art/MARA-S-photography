@@ -846,6 +846,42 @@ export async function ensureSchema(database: D1Database, env: Bindings) {
       .run();
   }
 
+  // About copy — replace the older fabricated biography still held by earlier databases, once.
+  const aboutBodyRefresh = await database
+    .prepare("SELECT value FROM settings WHERE key = 'about_body_v3'")
+    .first<{ value: string }>();
+  if (!aboutBodyRefresh) {
+    const site = await database
+      .prepare("SELECT value FROM settings WHERE key = 'site'")
+      .first<{ value: string }>();
+    if (site?.value) {
+      try {
+        const current = JSON.parse(site.value) as Record<string, unknown>;
+        const next = { ...current };
+        const body = typeof next.aboutBody === "string" ? next.aboutBody : "";
+        if (
+          body.includes("small Sydney apartment") ||
+          body.includes("Fifteen years on") ||
+          body.includes("small team of photographers") ||
+          body.includes("This biography is a placeholder")
+        ) {
+          next.aboutBody = DEFAULT_SETTINGS.aboutBody;
+          next.aboutStats = [];
+        }
+        await database
+          .prepare("UPDATE settings SET value = ? WHERE key = 'site'")
+          .bind(JSON.stringify(next))
+          .run();
+      } catch {
+        // Ignore stored settings that cannot be parsed.
+      }
+    }
+    await database
+      .prepare("INSERT INTO settings (key, value) VALUES ('about_body_v3', ?)")
+      .bind(new Date().toISOString())
+      .run();
+  }
+
   const seeded = await database
     .prepare("SELECT value FROM settings WHERE key = 'seeded_aud_v1'")
     .first<{ value: string }>();
@@ -893,17 +929,21 @@ export async function ensureSchema(database: D1Database, env: Bindings) {
       now,
     ],
   });
-  stmts.push({
-    sql: "INSERT INTO users (id, email, password_hash, name, phone, role, created_at) VALUES (?, ?, ?, ?, ?, 'customer', ?)",
-    params: [
-      customerId,
-      "demo@maras.studio",
-      await hashPassword("DemoCustomer2026!"),
-      "Alya Putri",
-      "+61 412 233 445",
-      now,
-    ],
-  });
+  // Demo customer account — opt-in only, never seeded as a real client.
+  if (env.SEED_DEMO_CONTENT === "true") {
+    stmts.push({
+      sql: "INSERT INTO users (id, email, password_hash, name, phone, role, created_at) VALUES (?, ?, ?, ?, ?, 'customer', ?)",
+      params: [
+        customerId,
+        "demo@maras.studio",
+        await hashPassword("DemoCustomer2026!"),
+        "Alya Putri",
+        "+61 412 233 445",
+        now,
+      ],
+    });
+  }
+
 
   // Categories + images
   CATEGORY_SEED.forEach((cat, index) => {
@@ -980,346 +1020,350 @@ export async function ensureSchema(database: D1Database, env: Bindings) {
     params: [now],
   });
 
-  // Testimonials
-  const testimonials = [
-    {
-      name: "Alya & Reza",
-      role: "Wedding, Southern Highlands",
-      quote:
-        "Mara disappeared into the day and came back with our whole family in her camera. We cried at the first preview — nothing felt staged.",
-      rating: 5,
-      image: photo(PHOTOS[4]),
-    },
-    {
-      name: "Sinta Maharani",
-      role: "Portrait session",
-      quote:
-        "I have hated every photo of myself for a decade. These are the first ones I have printed and hung in my own home.",
-      rating: 5,
-      image: photo(PHOTOS[32]),
-    },
-    {
-      name: "Nadia Kusuma",
-      role: "Brand campaign, Byron Bay",
-      quote:
-        "Three days, twelve looks, one small crew and zero drama. The campaign images are still running a year later.",
-      rating: 5,
-      image: photo(PHOTOS[50]),
-    },
-    {
-      name: "Rangga Pratama",
-      role: "Football club, A-League",
-      quote:
-        "She understands the game. She predicted the celebration before it happened and caught the only frame that mattered.",
-      rating: 5,
-      image: photo(PHOTOS[78]),
-    },
-    {
-      name: "The Wijaya Family",
-      role: "Family session",
-      quote:
-        "Two toddlers, one very patient photographer. Somehow every single image looks effortless and warm.",
-      rating: 5,
-      image: photo(PHOTOS[82]),
-    },
-    {
-      name: "Clara Wijaya",
-      role: "50th birthday",
-      quote:
-        "The photographs are the only thing from that night that still feels like the night itself. Worth every dollar.",
-      rating: 5,
-      image: photo(PHOTOS[61]),
-    },
-  ];
-  testimonials.forEach((t, index) => {
-    stmts.push({
-      sql: "INSERT INTO testimonials (id, name, role, quote, image, rating, published, sort_order) VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
-      params: [newId("tst_"), t.name, t.role, t.quote, t.image, t.rating, index],
-    });
-  });
-
-  // Inquiries
-  const inquiries = [
-    {
-      name: "Dimas Prakoso",
-      email: "dimas.prakoso@example.com",
-      phone: "+61 435 566 778",
-      subject: "Wedding coverage in the Hunter Valley",
-      message:
-        "We are planning a 120-guest wedding in Bowral next autumn and would love full-day coverage with a second shooter. Could you share availability and your destination fee?",
-      status: "new",
-    },
-    {
-      name: "Hotel Amara",
-      email: "marketing@amarahotel.example",
-      phone: "+61 2 9000 5511",
-      subject: "Commercial photography retainer",
-      message:
-        "We are refreshing our F&B and suite imagery for a rebrand across OTA channels. Looking for a monthly retainer with 40 deliverables.",
-      status: "read",
-    },
-    {
-      name: "Kevin Santoso",
-      email: "kevin.s@example.com",
-      phone: "",
-      subject: "Bespoke commission question",
-      message:
-        "Do you travel outside New South Wales for engagement sessions? We would like something at Lord Howe Island at golden hour.",
-      status: "new",
-    },
-  ];
-  inquiries.forEach((inquiry, index) => {
-    stmts.push({
-      sql: "INSERT INTO inquiries (id, name, email, phone, subject, message, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      params: [
-        newId("inq_"),
-        inquiry.name,
-        inquiry.email,
-        inquiry.phone,
-        inquiry.subject,
-        inquiry.message,
-        inquiry.status,
-        isoPast(1 + index * 3),
-      ],
-    });
-    stmts.push({
-      sql: "INSERT INTO notifications (id, type, title, body, link, read, created_at) VALUES (?, 'inquiry', ?, ?, ?, ?, ?)",
-      params: [
-        newId("ntf_"),
-        `New enquiry — ${inquiry.name}`,
-        `${inquiry.subject} · ${inquiry.email}`,
-        "/admin/inquiries",
-        index === 0 ? 0 : 1,
-        isoPast(1 + index * 3),
-      ],
-    });
-  });
-
-  // Packages referenced by demo bookings
-  const pkgBySlug = (slug: string) => PACKAGE_SEED.find((p) => p.slug === slug)!;
-  const slugOf = (name: string) =>
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-  const pkgId = (slug: string) => `pkg_${slug}`;
-  const pkgPrice = (slug: string) => {
-    const p = pkgBySlug(slug);
-    return Math.round(p.price * (1 - p.discount / 100));
-  };
-  const catId = (name: string) => `cat_${slugOf(name)}`;
-
-  const bookings = [
-    {
-      code: "MR-8KX42A",
-      name: "Alya Putri",
-      email: "demo@maras.studio",
-      phone: "+61 412 233 445",
-      category: "Wedding Photography",
-      pkg: "signature",
-      date: isoTomorrow(9),
-      slot: "10:00",
-      people: 2,
-      location: "Centennial Homestead, Centennial Park",
-      status: "pending",
-      payment: "unpaid",
-      daysAgo: 0,
-      notes: "Ceremony at 11:00, portraits in the garden afterwards. Please keep coverage discreet.",
-      userId: customerId,
-    },
-    {
-      code: "MR-3QW91D",
-      name: "Bima & Nadia",
-      email: "nadia.kusuma@example.com",
-      phone: "+61 498 877 266",
-      category: "Couple Photography",
-      pkg: "atelier",
-      date: isoTomorrow(19),
-      slot: "14:00",
-      people: 2,
-      location: "Bondi, Sydney",
-      status: "awaiting_payment",
-      payment: "unpaid",
-      daysAgo: 2,
-      notes: "Sunset engagement session — two looks, one outfit change in the car.",
-      userId: null,
-    },
-    {
-      code: "MR-7TB25F",
-      name: "Sinta Maharani",
-      email: "sinta.m@example.com",
-      phone: "+61 434 552 211",
-      category: "Portrait Photography",
-      pkg: "essential",
-      date: isoTomorrow(3),
-      slot: "09:00",
-      people: 1,
-      location: "Mara Studio, Paddington",
-      status: "paid",
-      payment: "paid",
-      daysAgo: 6,
-      notes: "Headshots for a book jacket. Prefers muted colours.",
-      userId: null,
-    },
-    {
-      code: "MR-5NP80C",
-      name: "Putri Anggraini",
-      email: "putri.anggraini@example.com",
-      phone: "+61 417 766 544",
-      category: "Fashion Photography",
-      pkg: "signature",
-      date: isoTomorrow(26),
-      slot: "13:00",
-      people: 4,
-      location: "Surry Hills, Sydney",
-      status: "approved",
-      payment: "unpaid",
-      daysAgo: 3,
-      notes: "Lookbook for a resort-wear label, 8 looks, one assistant coming.",
-      userId: null,
-    },
-    {
-      code: "MR-2HD67J",
-      name: "Rangga Pratama",
-      email: "rangga.p@example.com",
-      phone: "+61 423 110 099",
-      category: "Football & Sports Photography",
-      pkg: "signature",
-      date: isoTomorrow(-35),
-      slot: "16:00",
-      people: 22,
-      location: "Allianz Stadium, Moore Park",
-      status: "completed",
-      payment: "paid",
-      daysAgo: 48,
-      notes: "Match day coverage plus tunnel and warm-up frames.",
-      userId: null,
-    },
-    {
-      code: "MR-9LC31B",
-      name: "Clara Wijaya",
-      email: "clara.w@example.com",
-      phone: "+61 452 338 899",
-      category: "Birthday Photography",
-      pkg: "essential",
-      date: isoTomorrow(-70),
-      slot: "18:00",
-      people: 40,
-      location: "The Langham, Millers Point",
-      status: "completed",
-      payment: "paid",
-      daysAgo: 88,
-      notes: "50th birthday dinner, candid coverage only.",
-      userId: null,
-    },
-    {
-      code: "MR-4VZ16M",
-      name: "Dimas & Tara",
-      email: "tara.dimas@example.com",
-      phone: "+61 410 022 334",
-      category: "Wedding Photography",
-      pkg: "atelier",
-      date: isoTomorrow(-110),
-      slot: "08:00",
-      people: 2,
-      location: "Bunker Bay, Margaret River",
-      status: "completed",
-      payment: "paid",
-      daysAgo: 132,
-      notes: "Full-day destination wedding with second shooter.",
-      userId: null,
-    },
-    {
-      code: "MR-6RG48N",
-      name: "Nathan Lee",
-      email: "nathan.lee@example.com",
-      phone: "+61 426 677 123",
-      category: "Graduation Photography",
-      pkg: "essential",
-      date: isoTomorrow(-150),
-      slot: "10:00",
-      people: 5,
-      location: "University of Sydney, Camperdown",
-      status: "completed",
-      payment: "paid",
-      daysAgo: 168,
-      notes: "Family joined for the last 20 minutes.",
-      userId: null,
-    },
-    {
-      code: "MR-1PL93K",
-      name: "Maya Kusuma",
-      email: "maya.k@example.com",
-      phone: "+61 431 122 909",
-      category: "Maternity Photography",
-      pkg: "essential",
-      date: isoTomorrow(14),
-      slot: "11:00",
-      people: 3,
-      location: "Home session, Balmain",
-      status: "rejected",
-      payment: "unpaid",
-      daysAgo: 9,
-      notes: "Requested date falls on a blocked studio day.",
-      userId: null,
-    },
-  ];
-
-  bookings.forEach((b) => {
-    const id = newId("bkg_");
-    const amount = pkgPrice(b.pkg);
-    const deposit = Math.round((amount * pkgBySlug(b.pkg).deposit) / 100);
-    stmts.push({
-      sql: "INSERT INTO bookings (id, code, user_id, category_id, package_id, customer_name, email, phone, location, people, date, time_slot, notes, reference_images, admin_notes, amount, deposit_amount, status, payment_status, payment_method, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', '', ?, ?, ?, ?, ?, ?, ?)",
-      params: [
-        id,
-        b.code,
-        b.userId,
-        catId(b.category),
-        pkgId(b.pkg),
-        b.name,
-        b.email,
-        b.phone,
-        b.location,
-        b.people,
-        b.date,
-        b.slot,
-        b.notes,
-        amount,
-        deposit,
-        b.status,
-        b.payment,
-        b.payment === "unpaid" ? null : "card",
-        isoPast(b.daysAgo),
-        isoPast(b.daysAgo),
-      ],
-    });
-    if (b.payment === "paid") {
+  // Demo testimonials, enquiries and bookings — opt-in only; never published as real content.
+  if (env.SEED_DEMO_CONTENT === "true") {
+    // Testimonials
+    const testimonials = [
+      {
+        name: "Alya & Reza",
+        role: "Wedding, Southern Highlands",
+        quote:
+          "Mara disappeared into the day and came back with our whole family in her camera. We cried at the first preview — nothing felt staged.",
+        rating: 5,
+        image: photo(PHOTOS[4]),
+      },
+      {
+        name: "Sinta Maharani",
+        role: "Portrait session",
+        quote:
+          "I have hated every photo of myself for a decade. These are the first ones I have printed and hung in my own home.",
+        rating: 5,
+        image: photo(PHOTOS[32]),
+      },
+      {
+        name: "Nadia Kusuma",
+        role: "Brand campaign, Byron Bay",
+        quote:
+          "Three days, twelve looks, one small crew and zero drama. The campaign images are still running a year later.",
+        rating: 5,
+        image: photo(PHOTOS[50]),
+      },
+      {
+        name: "Rangga Pratama",
+        role: "Football club, A-League",
+        quote:
+          "She understands the game. She predicted the celebration before it happened and caught the only frame that mattered.",
+        rating: 5,
+        image: photo(PHOTOS[78]),
+      },
+      {
+        name: "The Wijaya Family",
+        role: "Family session",
+        quote:
+          "Two toddlers, one very patient photographer. Somehow every single image looks effortless and warm.",
+        rating: 5,
+        image: photo(PHOTOS[82]),
+      },
+      {
+        name: "Clara Wijaya",
+        role: "50th birthday",
+        quote:
+          "The photographs are the only thing from that night that still feels like the night itself. Worth every dollar.",
+        rating: 5,
+        image: photo(PHOTOS[61]),
+      },
+    ];
+    testimonials.forEach((t, index) => {
       stmts.push({
-        sql: "INSERT INTO payments (id, booking_id, order_id, provider, method, kind, gross_amount, status, raw, created_at, updated_at) VALUES (?, ?, ?, 'stripe', 'card', 'full', ?, 'checkout.session.completed', ?, ?, ?)",
+        sql: "INSERT INTO testimonials (id, name, role, quote, image, rating, published, sort_order) VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
+        params: [newId("tst_"), t.name, t.role, t.quote, t.image, t.rating, index],
+      });
+    });
+
+    // Inquiries
+    const inquiries = [
+      {
+        name: "Dimas Prakoso",
+        email: "dimas.prakoso@example.com",
+        phone: "+61 435 566 778",
+        subject: "Wedding coverage in the Hunter Valley",
+        message:
+          "We are planning a 120-guest wedding in Bowral next autumn and would love full-day coverage with a second shooter. Could you share availability and your destination fee?",
+        status: "new",
+      },
+      {
+        name: "Hotel Amara",
+        email: "marketing@amarahotel.example",
+        phone: "+61 2 9000 5511",
+        subject: "Commercial photography retainer",
+        message:
+          "We are refreshing our F&B and suite imagery for a rebrand across OTA channels. Looking for a monthly retainer with 40 deliverables.",
+        status: "read",
+      },
+      {
+        name: "Kevin Santoso",
+        email: "kevin.s@example.com",
+        phone: "",
+        subject: "Bespoke commission question",
+        message:
+          "Do you travel outside New South Wales for engagement sessions? We would like something at Lord Howe Island at golden hour.",
+        status: "new",
+      },
+    ];
+    inquiries.forEach((inquiry, index) => {
+      stmts.push({
+        sql: "INSERT INTO inquiries (id, name, email, phone, subject, message, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         params: [
-          newId("pay_"),
+          newId("inq_"),
+          inquiry.name,
+          inquiry.email,
+          inquiry.phone,
+          inquiry.subject,
+          inquiry.message,
+          inquiry.status,
+          isoPast(1 + index * 3),
+        ],
+      });
+      stmts.push({
+        sql: "INSERT INTO notifications (id, type, title, body, link, read, created_at) VALUES (?, 'inquiry', ?, ?, ?, ?, ?)",
+        params: [
+          newId("ntf_"),
+          `New enquiry — ${inquiry.name}`,
+          `${inquiry.subject} · ${inquiry.email}`,
+          "/admin/inquiries",
+          index === 0 ? 0 : 1,
+          isoPast(1 + index * 3),
+        ],
+      });
+    });
+
+    // Packages referenced by demo bookings
+    const pkgBySlug = (slug: string) => PACKAGE_SEED.find((p) => p.slug === slug)!;
+    const slugOf = (name: string) =>
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+    const pkgId = (slug: string) => `pkg_${slug}`;
+    const pkgPrice = (slug: string) => {
+      const p = pkgBySlug(slug);
+      return Math.round(p.price * (1 - p.discount / 100));
+    };
+    const catId = (name: string) => `cat_${slugOf(name)}`;
+
+    const bookings = [
+      {
+        code: "MR-8KX42A",
+        name: "Alya Putri",
+        email: "demo@maras.studio",
+        phone: "+61 412 233 445",
+        category: "Wedding Photography",
+        pkg: "signature",
+        date: isoTomorrow(9),
+        slot: "10:00",
+        people: 2,
+        location: "Centennial Homestead, Centennial Park",
+        status: "pending",
+        payment: "unpaid",
+        daysAgo: 0,
+        notes: "Ceremony at 11:00, portraits in the garden afterwards. Please keep coverage discreet.",
+        userId: customerId,
+      },
+      {
+        code: "MR-3QW91D",
+        name: "Bima & Nadia",
+        email: "nadia.kusuma@example.com",
+        phone: "+61 498 877 266",
+        category: "Couple Photography",
+        pkg: "atelier",
+        date: isoTomorrow(19),
+        slot: "14:00",
+        people: 2,
+        location: "Bondi, Sydney",
+        status: "awaiting_payment",
+        payment: "unpaid",
+        daysAgo: 2,
+        notes: "Sunset engagement session — two looks, one outfit change in the car.",
+        userId: null,
+      },
+      {
+        code: "MR-7TB25F",
+        name: "Sinta Maharani",
+        email: "sinta.m@example.com",
+        phone: "+61 434 552 211",
+        category: "Portrait Photography",
+        pkg: "essential",
+        date: isoTomorrow(3),
+        slot: "09:00",
+        people: 1,
+        location: "Mara Studio, Paddington",
+        status: "paid",
+        payment: "paid",
+        daysAgo: 6,
+        notes: "Headshots for a book jacket. Prefers muted colours.",
+        userId: null,
+      },
+      {
+        code: "MR-5NP80C",
+        name: "Putri Anggraini",
+        email: "putri.anggraini@example.com",
+        phone: "+61 417 766 544",
+        category: "Fashion Photography",
+        pkg: "signature",
+        date: isoTomorrow(26),
+        slot: "13:00",
+        people: 4,
+        location: "Surry Hills, Sydney",
+        status: "approved",
+        payment: "unpaid",
+        daysAgo: 3,
+        notes: "Lookbook for a resort-wear label, 8 looks, one assistant coming.",
+        userId: null,
+      },
+      {
+        code: "MR-2HD67J",
+        name: "Rangga Pratama",
+        email: "rangga.p@example.com",
+        phone: "+61 423 110 099",
+        category: "Football & Sports Photography",
+        pkg: "signature",
+        date: isoTomorrow(-35),
+        slot: "16:00",
+        people: 22,
+        location: "Allianz Stadium, Moore Park",
+        status: "completed",
+        payment: "paid",
+        daysAgo: 48,
+        notes: "Match day coverage plus tunnel and warm-up frames.",
+        userId: null,
+      },
+      {
+        code: "MR-9LC31B",
+        name: "Clara Wijaya",
+        email: "clara.w@example.com",
+        phone: "+61 452 338 899",
+        category: "Birthday Photography",
+        pkg: "essential",
+        date: isoTomorrow(-70),
+        slot: "18:00",
+        people: 40,
+        location: "The Langham, Millers Point",
+        status: "completed",
+        payment: "paid",
+        daysAgo: 88,
+        notes: "50th birthday dinner, candid coverage only.",
+        userId: null,
+      },
+      {
+        code: "MR-4VZ16M",
+        name: "Dimas & Tara",
+        email: "tara.dimas@example.com",
+        phone: "+61 410 022 334",
+        category: "Wedding Photography",
+        pkg: "atelier",
+        date: isoTomorrow(-110),
+        slot: "08:00",
+        people: 2,
+        location: "Bunker Bay, Margaret River",
+        status: "completed",
+        payment: "paid",
+        daysAgo: 132,
+        notes: "Full-day destination wedding with second shooter.",
+        userId: null,
+      },
+      {
+        code: "MR-6RG48N",
+        name: "Nathan Lee",
+        email: "nathan.lee@example.com",
+        phone: "+61 426 677 123",
+        category: "Graduation Photography",
+        pkg: "essential",
+        date: isoTomorrow(-150),
+        slot: "10:00",
+        people: 5,
+        location: "University of Sydney, Camperdown",
+        status: "completed",
+        payment: "paid",
+        daysAgo: 168,
+        notes: "Family joined for the last 20 minutes.",
+        userId: null,
+      },
+      {
+        code: "MR-1PL93K",
+        name: "Maya Kusuma",
+        email: "maya.k@example.com",
+        phone: "+61 431 122 909",
+        category: "Maternity Photography",
+        pkg: "essential",
+        date: isoTomorrow(14),
+        slot: "11:00",
+        people: 3,
+        location: "Home session, Balmain",
+        status: "rejected",
+        payment: "unpaid",
+        daysAgo: 9,
+        notes: "Requested date falls on a blocked studio day.",
+        userId: null,
+      },
+    ];
+
+    bookings.forEach((b) => {
+      const id = newId("bkg_");
+      const amount = pkgPrice(b.pkg);
+      const deposit = Math.round((amount * pkgBySlug(b.pkg).deposit) / 100);
+      stmts.push({
+        sql: "INSERT INTO bookings (id, code, user_id, category_id, package_id, customer_name, email, phone, location, people, date, time_slot, notes, reference_images, admin_notes, amount, deposit_amount, status, payment_status, payment_method, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', '', ?, ?, ?, ?, ?, ?, ?)",
+        params: [
           id,
-          `${b.code}-FULL`,
+          b.code,
+          b.userId,
+          catId(b.category),
+          pkgId(b.pkg),
+          b.name,
+          b.email,
+          b.phone,
+          b.location,
+          b.people,
+          b.date,
+          b.slot,
+          b.notes,
           amount,
-          JSON.stringify({ simulated: true, status_code: "200", transaction_status: "settlement" }),
+          deposit,
+          b.status,
+          b.payment,
+          b.payment === "unpaid" ? null : "card",
           isoPast(b.daysAgo),
           isoPast(b.daysAgo),
         ],
       });
-    }
-    stmts.push({
-      sql: "INSERT INTO notifications (id, type, title, body, link, read, created_at) VALUES (?, 'booking', ?, ?, ?, ?, ?)",
-      params: [
-        newId("ntf_"),
-        `New booking ${b.code} — ${b.name}`,
-        `${b.category} · ${b.date} at ${b.slot}`,
-        `/admin/bookings/${id}`,
-        b.daysAgo > 5 ? 1 : 0,
-        isoPast(b.daysAgo),
-      ],
+      if (b.payment === "paid") {
+        stmts.push({
+          sql: "INSERT INTO payments (id, booking_id, order_id, provider, method, kind, gross_amount, status, raw, created_at, updated_at) VALUES (?, ?, ?, 'stripe', 'card', 'full', ?, 'checkout.session.completed', ?, ?, ?)",
+          params: [
+            newId("pay_"),
+            id,
+            `${b.code}-FULL`,
+            amount,
+            JSON.stringify({ simulated: true, status_code: "200", transaction_status: "settlement" }),
+            isoPast(b.daysAgo),
+            isoPast(b.daysAgo),
+          ],
+        });
+      }
+      stmts.push({
+        sql: "INSERT INTO notifications (id, type, title, body, link, read, created_at) VALUES (?, 'booking', ?, ?, ?, ?, ?)",
+        params: [
+          newId("ntf_"),
+          `New booking ${b.code} — ${b.name}`,
+          `${b.category} · ${b.date} at ${b.slot}`,
+          `/admin/bookings/${id}`,
+          b.daysAgo > 5 ? 1 : 0,
+          isoPast(b.daysAgo),
+        ],
+      });
     });
-  });
+  }
+
 
   for (let i = 0; i < stmts.length; i += 15) {
     await database.batch(

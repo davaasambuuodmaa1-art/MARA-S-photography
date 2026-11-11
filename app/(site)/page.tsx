@@ -80,35 +80,41 @@ export default async function HomePage() {
       <section className="mx-auto max-w-[1680px] px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
         <div className="grid items-center gap-14 lg:grid-cols-[1fr_1.05fr] lg:gap-24">
           <Reveal className="relative">
-            <div className="relative aspect-[4/5] overflow-hidden frame-print">
+            <div className="relative overflow-hidden frame-print">
               <img
-                src={sizedImage(settings.aboutImage, 1200)}
-                alt="A Sydney location photographed at golden hour"
-                className="h-full w-full object-cover"
+                src={sizedImage(settings.founderPortrait || settings.aboutImage, 1200)}
+                alt={
+                  settings.founderName
+                    ? `${settings.founderName}, photographer`
+                    : "The photographer"
+                }
+                className="aspect-[4/5] h-full w-full object-cover"
                 loading="lazy"
               />
-            </div>
-            <div className="absolute -bottom-8 -right-4 hidden w-44 border border-ink/10 bg-cream p-6 shadow-card sm:block lg:-right-10 lg:w-52">
-              <p className="display text-4xl text-ink">15</p>
-              <p className="mt-1 text-[9px] uppercase leading-relaxed tracking-[0.22em] text-smoke">
-                Years photographing stories, quietly
-              </p>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/90 via-ink/45 to-transparent px-6 pb-6 pt-20 sm:px-8 sm:pb-8">
+                <p className="text-[9px] uppercase tracking-[0.24em] text-champagne/90">
+                  The photographer
+                </p>
+                <p className="display mt-3 text-balance text-[clamp(1.5rem,2.6vw,2.2rem)] leading-tight text-cream">
+                  {settings.aboutTitle}
+                </p>
+              </div>
             </div>
           </Reveal>
 
           <div>
-            <Reveal>
-              <p className="eyebrow">The photographer</p>
-              <h2 className="display mt-5 text-balance text-[clamp(2.2rem,4.4vw,3.6rem)] text-ink">
-                {settings.aboutTitle}
-              </h2>
-            </Reveal>
             <Reveal delay={120}>
-              {settings.aboutBody.split("\n\n").map((paragraph) => (
-                <p key={paragraph.slice(0, 24)} className="mt-6 text-[15px] leading-[1.85] text-smoke">
-                  {paragraph}
-                </p>
-              ))}
+              {(settings.founderVisible && settings.founderBio.trim()
+                ? settings.founderBio
+                : settings.aboutBody
+              )
+                .split("\n\n")
+                .filter(Boolean)
+                .map((paragraph, index) => (
+                  <p key={`story-${index}`} className="mt-6 text-[15px] leading-[1.85] text-smoke first:mt-0">
+                    {paragraph}
+                  </p>
+                ))}
             </Reveal>
             <Reveal delay={200}>
               <div className="mt-10 grid grid-cols-2 gap-6 border-t border-ink/10 pt-8 sm:grid-cols-4">
