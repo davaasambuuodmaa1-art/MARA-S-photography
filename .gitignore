@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+.env
+.env.local
+.dev.vars
+.wrangler
+.open-next
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+/freebuff-sites-build/
+/.open-next/
+/.wrangler/
