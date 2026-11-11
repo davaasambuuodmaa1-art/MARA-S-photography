@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   createCategoryAction,
   deleteCategoryAction,
+  moveCategoryAction,
   updateCategoryAction,
 } from "@/app/actions/galleries";
 import { cn, formatDate } from "@/lib/utils";
@@ -61,6 +62,14 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
     });
     setBusy(null);
     setEditing(null);
+    router.refresh();
+  };
+
+  const move = async (id: string, direction: "up" | "down") => {
+    setBusy(id);
+    const result = await moveCategoryAction(id, direction);
+    setBusy(null);
+    if (!result.ok) setError(result.error);
     router.refresh();
   };
 
@@ -126,7 +135,7 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {categories.map((category) => (
+        {categories.map((category, index) => (
           <div key={category.id} className="border border-ink/12 bg-white/70">
             <div className="relative aspect-[16/10] overflow-hidden bg-sand">
               {category.cover_image ? (
@@ -199,6 +208,24 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
               )}
 
               <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 border-t border-ink/10 pt-3 text-[9px] uppercase tracking-[0.12em] text-smoke">
+                <button
+                  type="button"
+                  disabled={index === 0 || busy === category.id}
+                  onClick={() => move(category.id, "up")}
+                  title="Move earlier in the portfolio order"
+                  className="hover:text-ink disabled:opacity-30"
+                >
+                  Move up
+                </button>
+                <button
+                  type="button"
+                  disabled={index === categories.length - 1 || busy === category.id}
+                  onClick={() => move(category.id, "down")}
+                  title="Move later in the portfolio order"
+                  className="hover:text-ink disabled:opacity-30"
+                >
+                  Move down
+                </button>
                 <button type="button" onClick={() => { setEditing(category.id); setEditDraft({ name: category.name, description: category.description }); }} className="hover:text-ink">
                   Rename
                 </button>

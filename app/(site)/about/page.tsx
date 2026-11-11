@@ -41,7 +41,7 @@ export default async function AboutPage() {
       <section className="relative h-[70vh] min-h-[460px] overflow-hidden bg-ink">
         <img
           src={sizedImage(settings.heroImage2, 2000)}
-          alt="Mara photographing a client on location in Sydney"
+          alt="A wedding photographed on location in Sydney"
           className="absolute inset-0 h-full w-full animate-kenburns object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-ink/50" />
@@ -66,12 +66,26 @@ export default async function AboutPage() {
                 {paragraph}
               </p>
             ))}
-            {settings.founderVisible && settings.founderBio ? (
-              <p className="mt-6 text-[15px] leading-[1.85] text-smoke">{settings.founderBio}</p>
-            ) : null}
-            {settings.founderVisible && settings.founderExperience ? (
-              <p className="mt-6 text-[15px] leading-[1.85] text-smoke">{settings.founderExperience}</p>
-            ) : null}
+            {settings.founderVisible
+              ? settings.founderBio
+                  .split("\n\n")
+                  .filter(Boolean)
+                  .map((paragraph, index) => (
+                    <p key={`bio-${index}`} className="mt-6 text-[15px] leading-[1.85] text-smoke">
+                      {paragraph}
+                    </p>
+                  ))
+              : null}
+            {settings.founderVisible
+              ? settings.founderExperience
+                  .split("\n\n")
+                  .filter(Boolean)
+                  .map((paragraph, index) => (
+                    <p key={`exp-${index}`} className="mt-6 text-[15px] leading-[1.85] text-smoke">
+                      {paragraph}
+                    </p>
+                  ))
+              : null}
             {settings.aboutStats.length ? (
               <div className="mt-10 grid grid-cols-2 gap-6 border-t border-ink/10 pt-8 sm:grid-cols-4">
                 {settings.aboutStats.map((stat) => (

@@ -15,6 +15,7 @@ function touch() {
   revalidatePath("/work");
   revalidatePath("/");
   revalidatePath("/admin/galleries");
+  revalidatePath("/admin/categories");
 }
 
 export async function createCategoryAction(input: {
@@ -69,6 +70,31 @@ export async function updateCategoryAction(
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Could not update." };
+  }
+}
+
+export async function moveCategoryAction(
+  id: string,
+  direction: "up" | "down",
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const rows = await all<{ id: string }>(
+      "SELECT id FROM categories ORDER BY sort_order ASC, name ASC",
+    );
+    const index = rows.findIndex((row) => row.id === id);
+    if (index < 0) return { ok: false, error: "Collection not found." };
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= rows.length) return { ok: true };
+    const next = [...rows];
+    [next[index], next[target]] = [next[target], next[index]];
+    for (let position = 0; position < next.length; position += 1) {
+      await run("UPDATE categories SET sort_order = ? WHERE id = ?", [position, next[position].id]);
+    }
+    touch();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not reorder collection." };
   }
 }
 

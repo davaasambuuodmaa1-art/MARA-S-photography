@@ -1,5 +1,6 @@
 import type { Bindings } from "./db";
 import { PHOTOS } from "./seed-photos";
+import { GALLERY_REMAP } from "./gallery-remap";
 import { DEFAULT_SETTINGS, photo } from "./settings";
 import { hashPassword } from "./auth";
 import { newId } from "./utils";
@@ -731,6 +732,116 @@ export async function ensureSchema(database: D1Database, env: Bindings) {
     }
     await database
       .prepare("INSERT INTO settings (key, value) VALUES ('founder_scrub_v1', ?)")
+      .bind(new Date().toISOString())
+      .run();
+  }
+
+  // Founder story — replace the shipped placeholder biography with the owner's real story, once.
+  const founderStory = await database
+    .prepare("SELECT value FROM settings WHERE key = 'founder_story_v1'")
+    .first<{ value: string }>();
+  if (!founderStory) {
+    const site = await database
+      .prepare("SELECT value FROM settings WHERE key = 'site'")
+      .first<{ value: string }>();
+    if (site?.value) {
+      try {
+        const current = JSON.parse(site.value) as Record<string, unknown>;
+        const next = { ...current };
+        const bio = typeof next.founderBio === "string" ? next.founderBio : "";
+        const bioIsPlaceholder =
+          bio.trim() === "" ||
+          bio.includes("Add your own biography in Admin") ||
+          bio.includes("founded the studio in 2014");
+        if (bioIsPlaceholder) next.founderBio = DEFAULT_SETTINGS.founderBio;
+        const body = typeof next.aboutBody === "string" ? next.aboutBody : "";
+        if (body.includes("This biography is a placeholder")) {
+          next.aboutBody = DEFAULT_SETTINGS.aboutBody;
+        }
+        await database
+          .prepare("UPDATE settings SET value = ? WHERE key = 'site'")
+          .bind(JSON.stringify(next))
+          .run();
+      } catch {
+        // Ignore stored settings that cannot be parsed.
+      }
+    }
+    await database
+      .prepare("INSERT INTO settings (key, value) VALUES ('founder_story_v1', ?)")
+      .bind(new Date().toISOString())
+      .run();
+  }
+
+  // Imagery refresh — swap the original placeholder photographs for the current defaults, once.
+  const imageryRefresh = await database
+    .prepare("SELECT value FROM settings WHERE key = 'imagery_refresh_v1'")
+    .first<{ value: string }>();
+  if (!imageryRefresh) {
+    const site = await database
+      .prepare("SELECT value FROM settings WHERE key = 'site'")
+      .first<{ value: string }>();
+    if (site?.value) {
+      try {
+        const current = JSON.parse(site.value) as Record<string, unknown>;
+        const next = { ...current };
+        const previous: Record<string, unknown> = {
+          heroImage: photo("1519741497674-611481863552"),
+          heroImage2: photo("1524504388940-b1c1722653e1"),
+          heroImage3: photo("1516589178581-6cd7833ae3b2"),
+          aboutImage: photo("1508214751196-bcfd4ca60f91"),
+        };
+        for (const [key, oldValue] of Object.entries(previous)) {
+          if (!next[key] || next[key] === oldValue) {
+            next[key] = (DEFAULT_SETTINGS as unknown as Record<string, unknown>)[key];
+          }
+        }
+        const oldInstagram = [
+          photo("1511818966892-d7d671e672a2"),
+          photo("1483985988355-763728e1935b"),
+          photo("1464349095431-e9a21285b5f3"),
+          photo("1516589178581-6cd7833ae3b2"),
+          photo("1499750310107-5fef28a66643"),
+          photo("1511895426328-dc8714191300"),
+        ];
+        const currentInstagram = Array.isArray(next.instagramImages) ? next.instagramImages : [];
+        if (
+          currentInstagram.length === 0 ||
+          JSON.stringify(currentInstagram) === JSON.stringify(oldInstagram)
+        ) {
+          next.instagramImages = DEFAULT_SETTINGS.instagramImages;
+        }
+        await database
+          .prepare("UPDATE settings SET value = ? WHERE key = 'site'")
+          .bind(JSON.stringify(next))
+          .run();
+      } catch {
+        // Ignore stored settings that cannot be parsed.
+      }
+    }
+    await database
+      .prepare("INSERT INTO settings (key, value) VALUES ('imagery_refresh_v1', ?)")
+      .bind(new Date().toISOString())
+      .run();
+  }
+
+  // Gallery refresh — replace the original demo portfolio photographs, once.
+  // Only rows still holding a seed URL (no R2 storage key) are rewritten, so owner uploads survive.
+  const galleryRefresh = await database
+    .prepare("SELECT value FROM settings WHERE key = 'gallery_refresh_v2'")
+    .first<{ value: string }>();
+  if (!galleryRefresh) {
+    for (const [oldId, newId] of Object.entries(GALLERY_REMAP)) {
+      await database
+        .prepare("UPDATE images SET url = ? WHERE url = ? AND storage_key IS NULL")
+        .bind(photo(newId), photo(oldId))
+        .run();
+      await database
+        .prepare("UPDATE categories SET cover_image = ? WHERE cover_image = ?")
+        .bind(photo(newId), photo(oldId))
+        .run();
+    }
+    await database
+      .prepare("INSERT INTO settings (key, value) VALUES ('gallery_refresh_v2', ?)")
       .bind(new Date().toISOString())
       .run();
   }

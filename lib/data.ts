@@ -109,55 +109,6 @@ export async function getCategories(publishedOnly = true): Promise<CategoryWithC
   );
 }
 
-/** Category CRUD */
-export async function insertCategory(input: { name: string; slug: string; description?: string; cover_image?: string; sort_order?: number }): Promise<{ id: string }> {
-  const id = input.slug;
-  await run(
-    `INSERT INTO categories (id, slug, name, description, cover_image, sort_order, published, watermark, downloads, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, 1, ?)`,
-    [id, input.slug, input.name, input.description ?? "", input.cover_image ?? "", input.sort_order ?? 0, new Date().toISOString()],
-  );
-  return { id };
-}
-
-export async function updateCategory(id: string, input: { name?: string; slug?: string; description?: string; cover_image?: string; sort_order?: number; published?: number }): Promise<void> {
-  const parts: string[] = [];
-  const vals: unknown[] = [];
-  if (input.name !== undefined) { parts.push("name = ?"); vals.push(input.name); }
-  if (input.slug !== undefined) { parts.push("slug = ?"); vals.push(input.slug); }
-  if (input.description !== undefined) { parts.push("description = ?"); vals.push(input.description); }
-  if (input.cover_image !== undefined) { parts.push("cover_image = ?"); vals.push(input.cover_image); }
-  if (input.sort_order !== undefined) { parts.push("sort_order = ?"); vals.push(input.sort_order); }
-  if (input.published !== undefined) { parts.push("published = ?"); vals.push(input.published); }
-  if (parts.length === 0) return;
-  vals.push(id);
-  await run(
-    `UPDATE categories SET ${parts.join(", ")} WHERE id = ?`,
-    vals,
-  );
-}
-
-export async function toggleCategoryPublished(id: string, published: number): Promise<void> {
-  await run(
-    `UPDATE categories SET published = ? WHERE id = ?`,
-    [published, id],
-  );
-}
-
-export async function deleteCategory(id: string): Promise<void> {
-  await run(
-    `DELETE FROM categories WHERE id = ?`,
-    [id],
-  );
-}
-
-export async function setCategorySortOrder(id: string, sort_order: number): Promise<void> {
-  await run(
-    `UPDATE categories SET sort_order = ? WHERE id = ?`,
-    [sort_order, id],
-  );
-}
-
-
 export async function getCategoryBySlug(slug: string) {
   return first<CategoryWithCount>(
     `SELECT c.*, (SELECT COUNT(*) FROM images i WHERE i.category_id = c.id) AS image_count
