@@ -14,6 +14,17 @@ export default async function CancellationPage() {
       <div className="mt-8 whitespace-pre-line text-sm leading-relaxed text-smoke">
         {settings.cancellationPolicy || "Cancellation policy to be added by the owner."}
       </div>
+      {settings.refundPolicy.trim() ? (
+        <div className="mt-12">
+          <Reveal>
+            <p className="eyebrow">Refunds</p>
+            <h2 className="display mt-3 text-3xl">Refund policy</h2>
+          </Reveal>
+          <div className="mt-6 whitespace-pre-line text-sm leading-relaxed text-smoke">
+            {settings.refundPolicy}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

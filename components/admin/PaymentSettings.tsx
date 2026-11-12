@@ -20,18 +20,25 @@ export function PaymentSettings({
     walletEnabled: settings.walletEnabled,
     bankEnabled: settings.bankEnabled,
     bankDetails: settings.bankDetails,
+    refundPolicy: settings.refundPolicy,
   });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
-    await saveSiteContentAction(draft);
+    setError(null);
+    const result = await saveSiteContentAction(draft);
     setBusy(false);
-    setMessage("Payment settings saved.");
-    setTimeout(() => setMessage(null), 2500);
-    router.refresh();
+    if (result.ok) {
+      setMessage("Payment settings saved.");
+      setTimeout(() => setMessage(null), 2500);
+      router.refresh();
+    } else {
+      setError(result.error);
+    }
   };
 
   return (
@@ -105,11 +112,22 @@ export function PaymentSettings({
             />
           </div>
         </div>
+        <div>
+          <label className="label">Refund policy shown to clients</label>
+          <textarea
+            rows={5}
+            className="field resize-y text-sm"
+            value={draft.refundPolicy}
+            onChange={(event) => setDraft({ ...draft, refundPolicy: event.target.value })}
+            placeholder="Write the refund terms clients should know before booking."
+          />
+        </div>
         <div className="flex items-center gap-3">
           <button type="submit" disabled={busy} className="btn-dark py-2.5 text-[9px] disabled:opacity-60">
             {busy ? "Saving…" : "Save payment settings"}
           </button>
           {message ? <span className="text-[10px] uppercase tracking-[0.14em] text-emerald-700">{message}</span> : null}
+          {error ? <span role="alert" className="text-[10px] text-rose-700">{error}</span> : null}
         </div>
       </form>
     </div>

@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     "MARA'S PHOTOGRAPHY is an on-location practice in Sydney, photographing people outdoors in the places they love.\n\nThere is no studio to visit — Mara comes to you, working with natural light and quiet direction to make images that still feel like you in twenty years.",
   aboutImage: photo("1494790108377-be9c29b29330"),
   aboutStats: [],
-  founderName: "Mara",
+  founderName: "MARA DAVAASAMBUU",
   founderRole: "Photographer & founder",
   founderIntro:
     "I photograph people on location around Sydney — early on a beach, in a terraced street, somewhere that already means something to you.",
@@ -31,9 +31,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   founderVisible: true,
   announcement: "Now taking bookings for the 2026 wedding season — only 8 dates remain.",
   announcementActive: true,
-  email: "studio@marasphotography.com",
+  email: "marlaa9939@yahoo.com",
   phone: "+61 412 400 877",
-  whatsapp: "61412400877",
+  whatsapp: "61420431027",
   address: "On location across Sydney, NSW — we travel to you. No fixed studio address.",
   instagram: "https://instagram.com/marasphotography",
   facebook: "https://facebook.com/marasphotography",
@@ -107,6 +107,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   templateReschedule: "Your session has been rescheduled.",
   cancellationPolicy:
     "Cancel or move a session at no cost up to 72 hours before the start time. Inside 72 hours the deposit is retained or held as a credit for twelve months. Cancellations by Mara — including unsafe weather — are always refunded or rebooked at no cost.",
+  refundPolicy: "",
   privacyPolicy:
     "Your details are used only to manage your booking, deliver your gallery and send the notifications you asked for. Photographs are delivered through a private gallery link and are never published without your permission. Ask us at any time to delete your data.",
   termsPolicy:

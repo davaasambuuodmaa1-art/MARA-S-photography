@@ -1,3 +1,5 @@
+/// <reference types="@cloudflare/workers-types" />
+
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export interface Bindings {
@@ -12,7 +14,14 @@ export interface Bindings {
   ADMIN_EMAIL?: string;
   SEED_ADMIN_EMAIL?: string;
   SEED_ADMIN_PASSWORD?: string;
+  AUTH_SECRET?: string;
   SEED_DEMO_CONTENT?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  APPLE_CLIENT_ID?: string;
+  APPLE_TEAM_ID?: string;
+  APPLE_KEY_ID?: string;
+  APPLE_PRIVATE_KEY?: string;
 }
 
 export async function getEnv(): Promise<Bindings> {

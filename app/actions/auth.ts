@@ -5,10 +5,12 @@ import {
   createSession,
   currentUser,
   destroySession,
+  isAdminLoginAllowed,
   registerUser,
   verifyPassword,
 } from "@/lib/auth";
 import { first, run } from "@/lib/db";
+import { isAllowedAdminEmail } from "@/lib/admin-access";
 import { notifyAdmin } from "@/lib/notify";
 import type { User } from "@/lib/types";
 
@@ -23,6 +25,9 @@ export async function loginAction(input: {
   if (!email || !input.password) return { ok: false, error: "Enter your email and password." };
   const user = await first<User>("SELECT * FROM users WHERE email = ?", [email]);
   if (!user || !(await verifyPassword(input.password, user.password_hash))) {
+    return { ok: false, error: "Those credentials do not match our records." };
+  }
+  if (user.role === "admin" && !(await isAdminLoginAllowed(email))) {
     return { ok: false, error: "Those credentials do not match our records." };
   }
   if (input.admin && user.role !== "admin") {
@@ -41,6 +46,9 @@ export async function registerAction(input: {
 }): Promise<ActionResult<{ name: string }>> {
   if (input.password.length < 8) return { ok: false, error: "Use at least 8 characters for your password." };
   if (input.name.trim().length < 2) return { ok: false, error: "Please enter your name." };
+  if (isAllowedAdminEmail(input.email)) {
+    return { ok: false, error: "This email is reserved for a studio administrator." };
+  }
   try {
     const user = await registerUser(input);
     await createSession(user);
@@ -86,10 +94,21 @@ export async function changePasswordAction(input: {
 }): Promise<ActionResult> {
   const user = await currentUser();
   if (!user) return { ok: false, error: "Please sign in." };
+  if (user.role === "admin" && !(await isAdminLoginAllowed(user.email))) {
+    return { ok: false, error: "This administrator account is no longer active." };
+  }
   if (!(await verifyPassword(input.current, user.password_hash))) {
     return { ok: false, error: "Your current password is incorrect." };
   }
-  if (input.next.length < 8) return { ok: false, error: "Use at least 8 characters." };
+  if (input.next.length < (user.role === "admin" ? 12 : 8)) {
+    return {
+      ok: false,
+      error:
+        user.role === "admin"
+          ? "Use at least 12 characters for an admin password."
+          : "Use at least 8 characters.",
+    };
+  }
   const { hashPassword } = await import("@/lib/auth");
   await run("UPDATE users SET password_hash = ? WHERE id = ?", [await hashPassword(input.next), user.id]);
   return { ok: true };

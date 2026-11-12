@@ -18,9 +18,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Provides the local D1/R2 bindings from freebuff.wrangler.jsonc while running `next dev`.
+// Local Next dev needs D1/R2 bindings, but does not run the generated cache Durable Objects.
 if (process.env.NODE_ENV === "development") {
-  initOpenNextCloudflareForDev({ configPath: "./freebuff.wrangler.jsonc" });
+  initOpenNextCloudflareForDev({ configPath: "./freebuff.dev.wrangler.jsonc" });
 }
 
 export default nextConfig;

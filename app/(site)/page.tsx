@@ -82,11 +82,11 @@ export default async function HomePage() {
           <Reveal className="relative">
             <div className="relative overflow-hidden frame-print">
               <img
-                src={sizedImage(settings.founderPortrait || settings.aboutImage, 1200)}
+                src={sizedImage(settings.founderPortrait || "/images/founder-portrait.png", 1200)}
                 alt={
                   settings.founderName
                     ? `${settings.founderName}, photographer`
-                    : "The photographer"
+                    : "MARA DAVAASAMBUU, photographer"
                 }
                 className="aspect-[4/5] h-full w-full object-cover"
                 loading="lazy"
@@ -110,6 +110,7 @@ export default async function HomePage() {
               )
                 .split("\n\n")
                 .filter(Boolean)
+                .slice(0, 1)
                 .map((paragraph, index) => (
                   <p key={`story-${index}`} className="mt-6 text-[15px] leading-[1.85] text-smoke first:mt-0">
                     {paragraph}
@@ -138,7 +139,7 @@ export default async function HomePage() {
       </section>
 
       {/* ------------------------------- collections ------------------------------ */}
-      <section className="bg-cream surface-grain py-24 lg:py-32">
+      <section id="featured-collections" className="bg-cream surface-grain py-24 lg:py-32">
         <div className="mx-auto max-w-[1680px] px-6 sm:px-10 lg:px-16">
           <Reveal className="flex flex-wrap items-end justify-between gap-6">
             <div>

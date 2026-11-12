@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
-import { getEnv, first, run } from "@/lib/db";
+import { hashPassword, isAdminAccessSetupComplete, requireAdmin } from "@/lib/auth";
+import { batch, getEnv, first, run } from "@/lib/db";
+import { ADMIN_SETUP_COMPLETE_KEY, OWNER_ADMIN, SECOND_ADMIN } from "@/lib/admin-access";
 import { getSiteSettings, saveSiteSettings } from "@/lib/data";
 import type { ActionResult } from "./auth";
 import type { Package, SiteSettings, Testimonial } from "@/lib/types";
@@ -15,11 +16,86 @@ export async function saveSiteContentAction(
 ): Promise<ActionResult> {
   try {
     await requireAdmin();
+    if (
+      patch.depositPercent !== undefined &&
+      (!Number.isFinite(patch.depositPercent) ||
+        patch.depositPercent < 0 ||
+        patch.depositPercent > 100)
+    ) {
+      return { ok: false, error: "Deposit percentage must be between 0 and 100." };
+    }
     await saveSiteSettings(patch);
     revalidatePath("/", "layout");
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Could not save content." };
+  }
+}
+
+export async function completeOwnerAccessSetupAction(input: {
+  ownerPassword: string;
+  ownerPasswordConfirmation: string;
+  secondAdminPassword: string;
+  secondAdminPasswordConfirmation: string;
+}): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    if (await isAdminAccessSetupComplete()) {
+      return { ok: false, error: "Admin access has already been set up." };
+    }
+    if (input.ownerPassword.length < 12 || input.secondAdminPassword.length < 12) {
+      return { ok: false, error: "Use at least 12 characters for each admin password." };
+    }
+    if (input.ownerPassword !== input.ownerPasswordConfirmation) {
+      return { ok: false, error: "The owner password confirmations do not match." };
+    }
+    if (input.secondAdminPassword !== input.secondAdminPasswordConfirmation) {
+      return { ok: false, error: "The second admin password confirmations do not match." };
+    }
+    if (input.ownerPassword === input.secondAdminPassword) {
+      return { ok: false, error: "Use a different password for each admin account." };
+    }
+
+    const [ownerHash, secondAdminHash] = await Promise.all([
+      hashPassword(input.ownerPassword),
+      hashPassword(input.secondAdminPassword),
+    ]);
+    const timestamp = new Date().toISOString();
+    await batch([
+      {
+        sql: `INSERT INTO users (id, email, password_hash, name, phone, role, notes, created_at)
+              VALUES (?, ?, ?, ?, NULL, 'admin', NULL, ?)
+              ON CONFLICT(email) DO UPDATE SET
+                password_hash = excluded.password_hash,
+                name = excluded.name,
+                role = 'admin'`,
+        params: [newId("u_"), OWNER_ADMIN.email, ownerHash, OWNER_ADMIN.name, timestamp],
+      },
+      {
+        sql: `INSERT INTO users (id, email, password_hash, name, phone, role, notes, created_at)
+              VALUES (?, ?, ?, ?, NULL, 'admin', NULL, ?)
+              ON CONFLICT(email) DO UPDATE SET
+                password_hash = excluded.password_hash,
+                name = excluded.name,
+                role = 'admin'`,
+        params: [newId("u_"), SECOND_ADMIN.email, secondAdminHash, SECOND_ADMIN.name, timestamp],
+      },
+      {
+        sql: "UPDATE users SET role = 'customer' WHERE role = 'admin' AND email NOT IN (?, ?)",
+        params: [OWNER_ADMIN.email, SECOND_ADMIN.email],
+      },
+      {
+        sql: "INSERT INTO settings (key, value) VALUES (?, ?)",
+        params: [ADMIN_SETUP_COMPLETE_KEY, timestamp],
+      },
+    ]);
+    revalidatePath("/admin", "layout");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Could not set up admin access.",
+    };
   }
 }
 

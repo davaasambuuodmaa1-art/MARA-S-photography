@@ -3,6 +3,7 @@ import { PHOTOS } from "./seed-photos";
 import { GALLERY_REMAP } from "./gallery-remap";
 import { DEFAULT_SETTINGS, photo } from "./settings";
 import { hashPassword } from "./auth";
+import { ADMIN_SETUP_COMPLETE_KEY } from "./admin-access";
 import { newId } from "./utils";
 
 const DDL = `
@@ -882,10 +883,108 @@ export async function ensureSchema(database: D1Database, env: Bindings) {
       .run();
   }
 
+  const whatsappNumberUpdated = await database
+    .prepare("SELECT value FROM settings WHERE key = 'whatsapp_number_v1'")
+    .first<{ value: string }>();
+  if (!whatsappNumberUpdated) {
+    const site = await database
+      .prepare("SELECT value FROM settings WHERE key = 'site'")
+      .first<{ value: string }>();
+    if (site?.value) {
+      const current: unknown = JSON.parse(site.value);
+      if (!current || typeof current !== "object" || Array.isArray(current)) {
+        throw new Error("Stored site settings must be a JSON object.");
+      }
+      const next = {
+        ...(current as Record<string, unknown>),
+        whatsapp: DEFAULT_SETTINGS.whatsapp,
+      };
+      await database
+        .prepare("UPDATE settings SET value = ? WHERE key = 'site'")
+        .bind(JSON.stringify(next))
+        .run();
+    }
+    await database
+      .prepare("INSERT INTO settings (key, value) VALUES ('whatsapp_number_v1', ?)")
+      .bind(new Date().toISOString())
+      .run();
+  }
+
+  const ownerContactUpdated = await database
+    .prepare("SELECT value FROM settings WHERE key = 'owner_contact_v1'")
+    .first<{ value: string }>();
+  if (!ownerContactUpdated) {
+    const site = await database
+      .prepare("SELECT value FROM settings WHERE key = 'site'")
+      .first<{ value: string }>();
+    if (site?.value) {
+      const current: unknown = JSON.parse(site.value);
+      if (!current || typeof current !== "object" || Array.isArray(current)) {
+        throw new Error("Stored site settings must be a JSON object.");
+      }
+      const next = {
+        ...(current as Record<string, unknown>),
+        founderName: DEFAULT_SETTINGS.founderName,
+        email: DEFAULT_SETTINGS.email,
+      };
+      await database
+        .prepare("UPDATE settings SET value = ? WHERE key = 'site'")
+        .bind(JSON.stringify(next))
+        .run();
+    }
+    await database
+      .prepare("INSERT INTO settings (key, value) VALUES ('owner_contact_v1', ?)")
+      .bind(new Date().toISOString())
+      .run();
+  }
+
   const seeded = await database
     .prepare("SELECT value FROM settings WHERE key = 'seeded_aud_v1'")
     .first<{ value: string }>();
-  if (seeded) return;
+  if (seeded) {
+    const adminSetupComplete = await database
+      .prepare("SELECT value FROM settings WHERE key = ?")
+      .bind(ADMIN_SETUP_COMPLETE_KEY)
+      .first<{ value: string }>();
+    const bootstrapAdminSeeded = await database
+      .prepare("SELECT value FROM settings WHERE key = 'bootstrap_admin_v1'")
+      .first<{ value: string }>();
+    const bootstrapEmail = (env.SEED_ADMIN_EMAIL || "").trim().toLowerCase();
+    if (
+      !adminSetupComplete &&
+      !bootstrapAdminSeeded &&
+      bootstrapEmail &&
+      env.SEED_ADMIN_PASSWORD
+    ) {
+      if (env.SEED_ADMIN_PASSWORD.length < 12) {
+        throw new Error("SEED_ADMIN_PASSWORD must contain at least 12 characters.");
+      }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(bootstrapEmail)) {
+        throw new Error("SEED_ADMIN_EMAIL must be a valid email address.");
+      }
+      await database
+        .prepare(
+          `INSERT INTO users (id, email, password_hash, name, phone, role, created_at)
+           VALUES (?, ?, ?, 'Initial administrator', NULL, 'admin', ?)
+           ON CONFLICT(email) DO UPDATE SET
+             password_hash = excluded.password_hash,
+             name = excluded.name,
+             role = 'admin'`,
+        )
+        .bind(
+          newId("u_"),
+          bootstrapEmail,
+          await hashPassword(env.SEED_ADMIN_PASSWORD),
+          new Date().toISOString(),
+        )
+        .run();
+      await database
+        .prepare("INSERT INTO settings (key, value) VALUES ('bootstrap_admin_v1', ?)")
+        .bind(new Date().toISOString())
+        .run();
+    }
+    return;
+  }
 
   // One-time content migration: the first seed was priced in rupiah and based in Jakarta.
   // When an older seed is present, clear the demo content so it is rebuilt in AUD / Sydney.
@@ -913,22 +1012,31 @@ export async function ensureSchema(database: D1Database, env: Bindings) {
   const now = new Date().toISOString();
   const stmts: { sql: string; params: unknown[] }[] = [];
 
-  // Administrator + demo customer
-  const adminEmail = (env.SEED_ADMIN_EMAIL || "admin@marasphotography.com").toLowerCase();
-  const adminPass = env.SEED_ADMIN_PASSWORD || "MaraStudio2026!";
-  const adminId = newId("u_");
+  // Demo customer
   const customerId = newId("u_");
-  stmts.push({
-    sql: "INSERT INTO users (id, email, password_hash, name, phone, role, created_at) VALUES (?, ?, ?, ?, ?, 'admin', ?)",
-    params: [
-      adminId,
-      adminEmail,
-      await hashPassword(adminPass),
-      "Mara Adhiswara",
-      "+61 412 400 877",
-      now,
-    ],
-  });
+  const bootstrapEmail = (env.SEED_ADMIN_EMAIL || "").trim().toLowerCase();
+  if (env.SEED_ADMIN_PASSWORD) {
+    if (env.SEED_ADMIN_PASSWORD.length < 12) {
+      throw new Error("SEED_ADMIN_PASSWORD must contain at least 12 characters.");
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(bootstrapEmail)) {
+      throw new Error("SEED_ADMIN_EMAIL must be a valid email address.");
+    }
+    stmts.push({
+      sql: `INSERT INTO users (id, email, password_hash, name, phone, role, created_at)
+            VALUES (?, ?, ?, 'Initial administrator', NULL, 'admin', ?)
+            ON CONFLICT(email) DO UPDATE SET
+              password_hash = excluded.password_hash,
+              name = excluded.name,
+              role = 'admin'`,
+      params: [newId("u_"), bootstrapEmail, await hashPassword(env.SEED_ADMIN_PASSWORD), now],
+    });
+    stmts.push({
+      sql: `INSERT INTO settings (key, value) VALUES ('bootstrap_admin_v1', ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      params: [now],
+    });
+  }
   // Demo customer account — opt-in only, never seeded as a real client.
   if (env.SEED_DEMO_CONTENT === "true") {
     stmts.push({

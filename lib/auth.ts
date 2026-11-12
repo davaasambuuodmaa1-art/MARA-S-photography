@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
-import { first, run } from "./db";
+import { first, getEnv, run } from "./db";
+import { ADMIN_SETUP_COMPLETE_KEY, isAllowedAdminEmail } from "./admin-access";
 import type { Role, User } from "./types";
 import { newId } from "./utils";
 
@@ -7,8 +8,14 @@ const SESSION_COOKIE = "mara_session";
 const VISITOR_COOKIE = "mara_visitor";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 
-function secret() {
-  return process.env.AUTH_SECRET || "mara-studio-signing-key-change-me-2026";
+async function secret() {
+  const env = await getEnv();
+  const configured = env.AUTH_SECRET || process.env.AUTH_SECRET;
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET must be configured before production sign-in is enabled.");
+  }
+  return "local-development-only-session-secret";
 }
 
 function b64url(bytes: Uint8Array) {
@@ -20,7 +27,7 @@ function b64url(bytes: Uint8Array) {
 async function hmac(value: string) {
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(secret()),
+    new TextEncoder().encode(await secret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"],
@@ -127,7 +134,24 @@ export async function currentUser(): Promise<User | null> {
 export async function currentAdmin(): Promise<User | null> {
   const user = await currentUser();
   if (!user || user.role !== "admin") return null;
+  if (!(await isAdminLoginAllowed(user.email))) return null;
   return user;
+}
+
+export async function isAdminAccessSetupComplete() {
+  return Boolean(
+    await first<{ value: string }>(
+      "SELECT value FROM settings WHERE key = ?",
+      [ADMIN_SETUP_COMPLETE_KEY],
+    ),
+  );
+}
+
+export async function isAdminLoginAllowed(email: string) {
+  if (await isAdminAccessSetupComplete()) return isAllowedAdminEmail(email);
+  const env = await getEnv();
+  const bootstrapEmail = (env.SEED_ADMIN_EMAIL || "").trim().toLowerCase();
+  return Boolean(env.SEED_ADMIN_PASSWORD && bootstrapEmail === email.trim().toLowerCase());
 }
 
 export async function requireAdmin() {

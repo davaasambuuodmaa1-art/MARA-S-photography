@@ -160,6 +160,21 @@ export function HeroEditorial({
           <span className="absolute right-5 top-1/2 hidden -translate-y-1/2 rotate-90 text-[8px] uppercase tracking-[0.5em] text-cream/75 lg:block">
             Mara&apos;s Photography — Sydney
           </span>
+          <Link
+            href="#featured-collections"
+            aria-label="Scroll to featured collections"
+            className="group absolute bottom-6 right-6 z-10 flex items-center gap-3 text-cream/90 sm:bottom-8 sm:right-8"
+          >
+            <span className="hidden text-[8px] uppercase tracking-[0.28em] sm:block">
+              Scroll to explore
+            </span>
+            <span
+              aria-hidden
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-cream/60 bg-ink/20 text-lg backdrop-blur-sm transition-colors duration-300 group-hover:bg-cream group-hover:text-ink"
+            >
+              ↓
+            </span>
+          </Link>
         </div>
       </div>
 

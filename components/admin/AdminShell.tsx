@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: "M3 10.5L11 4l8 6.5V20H3z" },
+  { href: "/admin/setup", label: "Owner setup", icon: "M4 5h14v14H4zM7 9h8M7 13h8M7 17h4" },
   { href: "/admin/bookings", label: "Bookings", icon: "M4 5h14v15H4zM8 3v4M14 3v4M4 10h14" },
   { href: "/admin/galleries", label: "Galleries", icon: "M3 5h16v14H3zM3 15l5-4 4 3 3-2 4 3" },
   { href: "/admin/private-galleries", label: "Private galleries", icon: "M5 10l7-6 7 6v9H5zM9 19v-6h4v6" },

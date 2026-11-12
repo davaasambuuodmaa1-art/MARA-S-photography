@@ -1,29 +1,18 @@
-"use client";
+import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
+import { adminOAuthIsConfigured, isAdminOAuthProvider } from "@/lib/admin-oauth";
+import { getEnv } from "@/lib/db";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { loginAction } from "@/app/actions/auth";
-import { cn } from "@/lib/utils";
+export const dynamic = "force-dynamic";
 
-export default function AdminLoginPage() {
-  const router = useRouter();
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    const result = await loginAction({ ...form, admin: true });
-    setBusy(false);
-    if (result.ok && result.role === "admin") {
-      router.replace("/admin");
-      router.refresh();
-    } else {
-      setError(result.ok ? "This account does not have studio access." : result.error);
-    }
-  };
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const [env, query] = await Promise.all([getEnv(), searchParams]);
+  const providers = (["google", "apple"] as const).filter(
+    (provider) => isAdminOAuthProvider(provider) && adminOAuthIsConfigured(provider, env),
+  );
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
@@ -54,44 +43,13 @@ export default function AdminLoginPage() {
             <a href="/account" className="underline">client account</a> page.
           </p>
 
-          <form onSubmit={submit} className="mt-8 space-y-4">
-            <div>
-              <label className="label" htmlFor="admin-email">Email</label>
-              <input
-                id="admin-email"
-                type="email"
-                autoComplete="username"
-                required
-                className="field"
-                value={form.email}
-                onChange={(event) => setForm({ ...form, email: event.target.value })}
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="admin-password">Password</label>
-              <input
-                id="admin-password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="field"
-                value={form.password}
-                onChange={(event) => setForm({ ...form, password: event.target.value })}
-              />
-            </div>
-            {error ? (
-              <p className="border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">{error}</p>
-            ) : null}
-            <button type="submit" disabled={busy} className={cn("btn-dark w-full", busy && "opacity-60")}>
-              {busy ? "Signing in…" : "Enter"}
-            </button>
-          </form>
+          <AdminLoginForm providers={providers} oauthError={query.error} />
 
           <p className="mt-6 border-t border-ink/10 pt-5 text-[11px] leading-relaxed text-smoke/70">
-            First sign-in uses the credentials set by <code className="font-mono">SEED_ADMIN_EMAIL</code> and{" "}
-            <code className="font-mono">SEED_ADMIN_PASSWORD</code> (defaults in{" "}
-            <code className="font-mono">.env.example</code>). Change the password from your account page
-            after signing in.
+            Before owner setup, sign in using the one-time bootstrap credentials configured in{" "}
+            <code className="font-mono">SEED_ADMIN_EMAIL</code> and{" "}
+            <code className="font-mono">SEED_ADMIN_PASSWORD</code>. Then open Owner setup to create the
+            two separate administrator accounts.
           </p>
           <a href="/" className="mt-6 inline-block text-[10px] uppercase tracking-[0.2em] text-smoke hover:text-ink">
             ← Back to the website

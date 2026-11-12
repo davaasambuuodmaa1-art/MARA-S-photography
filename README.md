@@ -15,12 +15,15 @@ storage. No third-party database or auth account is required to run it.
 
 | Area | URL | Credentials |
 | --- | --- | --- |
-| Admin dashboard | `/admin/login` | `admin@marasphotography.com` / `MaraStudio2026!` |
+| Admin dashboard | `/admin/login` | The one-time bootstrap values configured in `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` |
 | Client account demo | `/account` | `demo@maras.studio` / `DemoCustomer2026!` |
 
-Change the admin password from **Account → Profile & security** after signing in, and set
-`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` before first deploy if you want different seed
-credentials. Those values are only used the very first time the database is created.
+Set a unique 12-character-or-longer bootstrap password in local/hosting secrets before the first
+admin sign-in, using the primary owner's email for `SEED_ADMIN_EMAIL`. Then visit **Owner setup** and
+create separate, different passwords for the primary owner (`marlaa9939@yahoo.com`) and the only
+other admin (`starmaa0307@gmail.com`). Setup replaces the one-time bootstrap password; only those
+two administrator emails remain allowed. Each administrator can change their own password under
+**Account & security**. No admin password is stored in this repository.
 
 ## 2. What is included
 
@@ -62,6 +65,8 @@ credentials. Those values are only used the very first time the database is crea
 - **Enquiries** — read, mark replied/archived, reply by email or WhatsApp, delete.
 - **Notifications** — live bell polling every 10 seconds plus a full history.
 - **Payments** — provider status, checkout method toggles, deposit percentage, bank details.
+- **Owner setup** — a six-section onboarding hub for business details, services, packages,
+  payment policies, site content and the two administrator accounts.
 
 ## 3. How the important rules are enforced
 
@@ -79,18 +84,19 @@ credentials. Those values are only used the very first time the database is crea
   HMAC-SHA256 signature, currency and amount check, (b) an admin-entered bank transfer reference, or (c) the
   clearly-labelled sandbox simulation used while no keys exist.
 - **Admin routes are separated and protected.** `/admin/*` renders inside a layout that verifies the
-  session cookie and admin role; clients are redirected to `/admin/login`. Every admin server action
-  also calls `requireAdmin()`.
-- **Passwords** use PBKDF2-SHA256 (100k iterations, per-user salt). Sessions are HMAC-signed,
-  httpOnly cookies.
+  session cookie, admin role and (after setup) the two-email allowlist; every admin server action
+  also calls `requireAdmin()`. Public registration cannot claim either protected email.
+- **Passwords** use PBKDF2-SHA256 (100k iterations, per-user salt). Admin passwords must be at least
+  12 characters and the two initial admin passwords must be different. Production sessions require
+  a configured `AUTH_SECRET` and use HMAC-signed, httpOnly cookies.
 - **Uploads persist** in the R2 bucket binding `FILES` and are served through `/api/media/...` with
   immutable caching. Seed demo photographs are remote Unsplash URLs — replace them from
   **Galleries** with your own uploads.
 
 ## 4. Environment variables
 
-Nothing is required to run the app. These unlock production features (set them in Sites → Secrets,
-never in code):
+Set secrets in `.dev.vars` for local Workers development and in Sites → Secrets for production.
+Never commit passwords, tokens or API keys:
 
 | Variable | Purpose |
 | --- | --- |
@@ -101,7 +107,22 @@ never in code):
 | `EMAIL_FROM` | From address for those emails |
 | `ADMIN_EMAIL` | Where admin notifications are emailed |
 | `NEXT_PUBLIC_SITE_URL` | Public origin used in receipts and payment callbacks |
-| `AUTH_SECRET` | Long random value that signs session cookies |
+| `AUTH_SECRET` | Long random value required to sign production session cookies |
+| `SEED_ADMIN_EMAIL` | One-time bootstrap login email, before Owner setup is complete |
+| `SEED_ADMIN_PASSWORD` | Unique 12+ character bootstrap password; no default is provided |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional Google admin sign-in OAuth credentials |
+| `APPLE_CLIENT_ID` | Optional Apple Services ID for admin sign-in |
+| `APPLE_TEAM_ID` / `APPLE_KEY_ID` / `APPLE_PRIVATE_KEY` | Apple developer credentials used to sign the OAuth client secret |
+
+**Admin Google / Apple sign-in:** create OAuth credentials with callback URLs
+`https://your-domain/api/auth/admin/google/callback` and
+`https://your-domain/api/auth/admin/apple/callback`, then set the variables above in `.dev.vars`
+or hosting secrets. For local Google testing, register
+`http://localhost:3000/api/auth/admin/google/callback`. Apple sign-in requires an Apple Developer
+Services ID and Sign in with Apple key. The Apple private key must be stored as a secret; escaped
+`\n` line breaks are supported. Social sign-in only works for an existing, verified, allowlisted
+admin email. Apple Hide My Email addresses and other emails are not granted access. Email/password
+sign-in remains available.
 
 **Stripe setup:** create a Stripe account, copy the secret key, add a webhook endpoint pointing at
 `https://your-domain/api/payments/stripe` for `checkout.session.completed` and
@@ -117,8 +138,13 @@ npm run dev      # http://localhost:3000
 npm run build    # production build
 ```
 
-The local database and bucket bindings come from `freebuff.wrangler.jsonc` (generated for this
-project) via `initOpenNextCloudflareForDev`, and persist under `.wrangler/state`.
+The local database and bucket bindings come from `freebuff.dev.wrangler.jsonc` via
+`initOpenNextCloudflareForDev`, and persist under `.wrangler/state`. This development-only config
+omits the OpenNext cache Durable Objects, which are exported by the generated production Worker.
+Before using the
+admin dashboard, create an untracked `.dev.vars` file with `SEED_ADMIN_EMAIL`,
+`SEED_ADMIN_PASSWORD` and `AUTH_SECRET`; choose a unique bootstrap password. Sign in at
+`/admin/login`, complete `/admin/setup`, and then sign in separately with the two allowed accounts.
 
 ## 6. Deployment
 
@@ -129,8 +155,7 @@ demo studio automatically.
 
 ## Design system
 
-A luxury editorial identity layered over the existing product features — no booking, payment, admin or
-auth logic was changed.
+A luxury editorial identity for the public website and admin experience.
 
 - **Palette** — ink `#0a0908`, espresso `#2b1d16`, burgundy `#561b27`, cream `#f8f2e7`,
   sand `#efe3d1`, champagne `#cdaf86`, gold `#a9855b`, blush `#e7cfc9`, taupe `#a3947f`.

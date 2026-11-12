@@ -1,7 +1,14 @@
-import Link from "next/link";
 import { Reveal } from "@/components/site/Reveal";
 import { getSiteSettings } from "@/lib/data";
 import { sizedImage } from "@/lib/img";
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +109,7 @@ export default async function AboutPage() {
           <Reveal delay={120} className="relative">
             <div className="aspect-[4/5] overflow-hidden">
               <img
-                src={sizedImage(settings.founderPortrait || settings.aboutImage, 1200)}
+                src={sizedImage(settings.founderPortrait || "/images/founder-about-portrait.png", 1200)}
                 alt={settings.founderName || "Founder portrait"}
                 className="h-full w-full object-cover"
                 loading="lazy"
@@ -170,8 +177,8 @@ export default async function AboutPage() {
             Come and make something worth keeping.
           </h2>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/book" className="btn-dark">Book a session</Link>
-            <Link href="/work" className="btn-outline">See the work</Link>
+            <a href="/book" className="btn-dark">Book a session</a>
+            <a href="/work" className="btn-outline">See the work</a>
           </div>
         </Reveal>
       </section>

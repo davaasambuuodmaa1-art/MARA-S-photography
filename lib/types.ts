@@ -283,6 +283,7 @@ export interface SiteSettings {
   templateGalleryDelivery: string;
   templateReschedule: string;
   cancellationPolicy: string;
+  refundPolicy: string;
   privacyPolicy: string;
   termsPolicy: string;
 }
