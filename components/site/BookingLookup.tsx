@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { lookupBookingAction } from "@/app/actions/bookings";
 import { BOOKING_STATUS, formatDate, cn } from "@/lib/utils";
+import { useSiteLocale } from "@/lib/use-site-locale";
+import { localizeStatus } from "@/lib/site-locale";
 
 export function BookingLookup() {
+  const mn = useSiteLocale() === "mn";
   const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +35,7 @@ export function BookingLookup() {
     <div className="mx-auto max-w-xl">
       <form onSubmit={submit} className="space-y-5 border border-ink/12 bg-white/70 p-8">
         <div>
-          <label className="label" htmlFor="lookup-code">Booking reference</label>
+          <label className="label" htmlFor="lookup-code">{mn ? "Захиалгын дугаар" : "Booking reference"}</label>
           <input
             id="lookup-code"
             className="field font-mono uppercase tracking-widest"
@@ -43,7 +46,7 @@ export function BookingLookup() {
           />
         </div>
         <div>
-          <label className="label" htmlFor="lookup-email">Email used for the booking</label>
+          <label className="label" htmlFor="lookup-email">{mn ? "Захиалгад ашигласан имэйл" : "Email used for the booking"}</label>
           <input
             id="lookup-email"
             type="email"
@@ -58,7 +61,7 @@ export function BookingLookup() {
           <p className="border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">{error}</p>
         ) : null}
         <button type="submit" disabled={busy} className={cn("btn-dark w-full", busy && "opacity-60")}>
-          {busy ? "Looking…" : "Find my booking"}
+          {busy ? (mn ? "Хайж байна…" : "Looking…") : (mn ? "Захиалга хайх" : "Find my booking")}
         </button>
       </form>
 
@@ -75,21 +78,21 @@ export function BookingLookup() {
                 BOOKING_STATUS[result.status]?.className,
               )}
             >
-              {BOOKING_STATUS[result.status]?.label ?? result.status}
+              {localizeStatus(BOOKING_STATUS[result.status]?.label ?? result.status, mn ? "mn" : "en")}
             </span>
           </div>
           <p className="mt-4 text-sm text-smoke">
             {formatDate(result.date)} · {result.time}
           </p>
           <Link href={`/booking/${result.code}`} className="btn-outline mt-5 w-full">
-            Open full booking
+            {mn ? "Захиалгын дэлгэрэнгүй" : "Open full booking"}
           </Link>
         </div>
       ) : null}
 
       <p className="mt-8 text-center text-[11px] leading-relaxed text-smoke/70">
-        Signed in? All of your bookings live in{" "}
-        <Link href="/account" className="underline">your account</Link>.
+        {mn ? "Нэвтэрсэн үү? Таны бүх захиалга " : "Signed in? All of your bookings live in "}
+        <Link href="/account" className="underline">{mn ? "бүртгэлд" : "your account"}</Link>{mn ? " хадгалагдана." : "."}
       </p>
     </div>
   );

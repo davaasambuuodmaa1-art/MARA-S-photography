@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getPrivateGalleryByToken } from "@/lib/data";
+import { currentSiteLocale } from "@/lib/current-site-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ export default async function PrivateGalleryPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const mn = (await currentSiteLocale()) === "mn";
   const gallery = await getPrivateGalleryByToken(token);
   if (!gallery) notFound();
 
@@ -26,10 +28,10 @@ export default async function PrivateGalleryPage({
   return (
     <main className="mx-auto max-w-6xl px-5 py-12 lg:px-8">
       <header className="mb-8">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-smoke">Private gallery</p>
+        <p className="text-[10px] uppercase tracking-[0.24em] text-smoke">{mn ? "Хувийн галерей" : "Private gallery"}</p>
         <h1 className="display mt-2 text-4xl">{gallery.title}</h1>
         {gallery.customer_name ? (
-          <p className="mt-2 text-sm text-smoke">For {gallery.customer_name}</p>
+          <p className="mt-2 text-sm text-smoke">{mn ? `${gallery.customer_name}-д зориулав` : `For ${gallery.customer_name}`}</p>
         ) : null}
         {gallery.note ? <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-smoke">{gallery.note}</p> : null}
       </header>
@@ -37,22 +39,22 @@ export default async function PrivateGalleryPage({
       {!live ? (
         <div className="border border-ink/12 bg-white/70 p-8 text-center">
           <p className="font-serif text-2xl">
-            {expired ? "This gallery has expired" : "This gallery is not available yet"}
+            {expired ? (mn ? "Энэ галерейн хугацаа дууссан" : "This gallery has expired") : (mn ? "Энэ галерей хараахан нээгдээгүй байна" : "This gallery is not available yet")}
           </p>
           <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-smoke">
             {expired
-              ? "The viewing window for this gallery has closed. Contact Mara to request access again."
-              : "The photographs are being prepared. You will receive the private link once they are ready."}
+              ? (mn ? "Энэ галерейг үзэх хугацаа дууссан байна. Дахин нэвтрэх эрх авахын тулд Маратай холбогдоно уу." : "The viewing window for this gallery has closed. Contact Mara to request access again.")
+              : (mn ? "Зургуудыг бэлтгэж байна. Бэлэн болмогц хувийн холбоосыг илгээнэ." : "The photographs are being prepared. You will receive the private link once they are ready.")}
           </p>
         </div>
       ) : (
         <>
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 text-[10px] uppercase tracking-[0.14em] text-smoke">
-            <span>{images.length} photograph{images.length === 1 ? "" : "s"}</span>
+            <span>{images.length} {mn ? "зураг" : `photograph${images.length === 1 ? "" : "s"}`}</span>
             {gallery.downloads ? (
-              <span>Downloads enabled</span>
+              <span>{mn ? "Татах боломжтой" : "Downloads enabled"}</span>
             ) : (
-              <span>Viewing only — downloads disabled</span>
+              <span>{mn ? "Зөвхөн үзэх боломжтой — татаж авахыг хориглосон" : "Viewing only — downloads disabled"}</span>
             )}
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -65,7 +67,7 @@ export default async function PrivateGalleryPage({
                     download
                     className="absolute bottom-2 right-2 border border-white/40 bg-ink/70 px-2 py-1 text-[8px] uppercase tracking-[0.12em] text-cream opacity-0 transition group-hover:opacity-100"
                   >
-                    Download
+                    {mn ? "Татах" : "Download"}
                   </a>
                 ) : null}
               </figure>
@@ -73,7 +75,7 @@ export default async function PrivateGalleryPage({
           </div>
           {gallery.expires_at ? (
             <p className="mt-6 text-[10px] text-smoke/70">
-              Available until {new Date(gallery.expires_at).toLocaleDateString("en-AU")}.
+              {mn ? "Хүчинтэй хугацаа:" : "Available until"} {new Date(gallery.expires_at).toLocaleDateString(mn ? "mn-MN" : "en-AU")}.
             </p>
           ) : null}
         </>

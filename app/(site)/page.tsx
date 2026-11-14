@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { Accordion } from "@/components/site/Accordion";
 import { HeroEditorial } from "@/components/site/HeroEditorial";
@@ -15,6 +16,7 @@ import {
   packageFeatures,
 } from "@/lib/data";
 import { sizedImage } from "@/lib/img";
+import { SITE_LOCALE_COOKIE, SITE_TEXT, getSiteLocale, localizeSiteContent } from "@/lib/site-locale";
 import { formatAUD } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -30,19 +32,22 @@ const CURATED = [
 ];
 
 export default async function HomePage() {
-  const [settings, categories, packages, testimonials, images] = await Promise.all([
+  const [settings, categories, packages, testimonials, images, cookieStore] = await Promise.all([
     getSiteSettings(),
     getCategories(),
     getPackages(),
     getTestimonials(),
     curatedFrames(CURATED, 12),
+    cookies(),
   ]);
+  const locale = getSiteLocale(cookieStore.get(SITE_LOCALE_COOKIE)?.value);
+  const t = SITE_TEXT[locale];
   const counts = await likeCounts(images.map((i) => i.id));
   const curated = CURATED.map((slug) => categories.find((c) => c.slug === slug)).filter(
     (c): c is (typeof categories)[number] => Boolean(c),
   );
   const featured = curated.length ? curated : categories.slice(0, 6);
-  const taglineWords = settings.tagline.trim().split(" ");
+  const taglineWords = localizeSiteContent(settings.tagline, locale).trim().split(" ");
   const heroAccent = taglineWords.slice(-1)[0] ?? settings.tagline;
   const heroLead = taglineWords.slice(0, -1).join(" ") || settings.tagline;
 
@@ -50,17 +55,17 @@ export default async function HomePage() {
     <>
       {/* ---------------------------------- hero --------------------------------- */}
       <HeroEditorial
-        eyebrow={settings.heroEyebrow}
-        issue="Nº 01 — Sydney"
+        eyebrow={localizeSiteContent(settings.heroEyebrow, locale)}
+        issue={t.home.issue}
         lead={heroLead}
         accent={heroAccent}
-        subtitle={settings.heroSubtitle}
+        subtitle={localizeSiteContent(settings.heroSubtitle, locale)}
         image={sizedImage(settings.heroImage, 2000)}
         insetImage={sizedImage(settings.heroImage2, 900)}
         meta={[
-          { label: "Established", value: "2010" },
-          { label: "Stories told", value: "1,240" },
-          { label: "Atelier", value: "Sydney" },
+          { label: t.home.established, value: "2010" },
+          { label: t.home.storiesTold, value: "1,240" },
+          { label: t.home.atelier, value: "Sydney" },
         ]}
       />
 
@@ -69,7 +74,7 @@ export default async function HomePage() {
         <div className="flex w-max animate-marquee gap-12 whitespace-nowrap pr-12 text-[9px] uppercase tracking-[0.4em] text-cream/60">
           {[...categories, ...categories].map((category, i) => (
             <span key={`${category.slug}-${i}`} className="flex items-center gap-12">
-              {category.name.replace(" Photography", "")}
+              {localizeSiteContent(category.name, locale).replace(" Photography", "").replace("гэрэл зураг", "")}
               <span className="text-champagne">✦</span>
             </span>
           ))}
@@ -93,10 +98,10 @@ export default async function HomePage() {
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/90 via-ink/45 to-transparent px-6 pb-6 pt-20 sm:px-8 sm:pb-8">
                 <p className="text-[9px] uppercase tracking-[0.24em] text-champagne/90">
-                  The photographer
+                  {t.home.photographer}
                 </p>
                 <p className="display mt-3 text-balance text-[clamp(1.5rem,2.6vw,2.2rem)] leading-tight text-cream">
-                  {settings.aboutTitle}
+                  {localizeSiteContent(settings.aboutTitle, locale)}
                 </p>
               </div>
             </div>
@@ -131,7 +136,7 @@ export default async function HomePage() {
             </Reveal>
             <Reveal delay={260}>
               <Link href="/about" className="mt-9 inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.26em] text-ink link-underline">
-                Read Mara's story <span aria-hidden>→</span>
+                {t.home.readStory} <span aria-hidden>→</span>
               </Link>
             </Reveal>
           </div>
@@ -143,13 +148,13 @@ export default async function HomePage() {
         <div className="mx-auto max-w-[1680px] px-6 sm:px-10 lg:px-16">
           <Reveal className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="eyebrow">Featured collections</p>
+              <p className="eyebrow">{t.home.featuredCollections}</p>
               <h2 className="display mt-4 text-[clamp(2.2rem,4.2vw,3.4rem)] text-ink">
-                Twenty-one ways of seeing
+                {t.home.collectionsIntro}
               </h2>
             </div>
             <Link href="/work" className="text-[10px] uppercase tracking-[0.26em] text-ink link-underline">
-              All collections →
+              {t.home.viewAllCollections} →
             </Link>
           </Reveal>
 
@@ -160,7 +165,7 @@ export default async function HomePage() {
                   <div className={i === 0 ? "aspect-[4/3] lg:aspect-[3/2]" : "aspect-[4/5]"}>
                     <img
                       src={sizedImage(category.cover_image, 1100)}
-                      alt={category.name}
+                      alt=                      {localizeSiteContent(category.name, locale)}
                       loading="lazy"
                       className="grade h-full w-full object-cover transition-transform duration-[1400ms] ease-luxe group-hover:scale-105"
                     />
@@ -171,7 +176,7 @@ export default async function HomePage() {
                       <p className="text-[9px] uppercase tracking-[0.3em] text-cream/60">
                         {String(category.image_count).padStart(2, "0")} frames
                       </p>
-                      <p className="mt-2 font-serif text-2xl text-cream">{category.name}</p>
+                      <p className="mt-2 font-serif text-2xl text-cream">                      {localizeSiteContent(category.name, locale)}</p>
                     </div>
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cream/40 text-cream transition-all duration-500 group-hover:bg-cream group-hover:text-ink">
                       <svg width="13" height="10" viewBox="0 0 18 10" fill="none" aria-hidden>
@@ -190,14 +195,15 @@ export default async function HomePage() {
       <section className="mx-auto max-w-[1680px] px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
         <Reveal className="mb-12 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="eyebrow">Selected frames</p>
+            <p className="eyebrow">{t.home.selectedFrames}</p>
             <h2 className="display mt-4 text-[clamp(2.2rem,4.2vw,3.4rem)] text-ink">
-              A year in photographs
+              {t.home.yearInPhotographs}
             </h2>
           </div>
           <p className="max-w-sm text-sm leading-relaxed text-smoke">
-            Click any frame to open the full-screen viewer — like the ones you love, share them, and
-            download the images Mara has released.
+            {locale === "mn"
+              ? "Зургийг дарж бүтэн дэлгэцээр үзээрэй. Таалагдсан зургаа лайк дарж, хуваалцах эсвэл Марагаас татах эрх олгосон зургийг татаж аваарай."
+              : "Click any frame to open the full-screen viewer — like the ones you love, share them, and download the images Mara has released."}
           </p>
         </Reveal>
         <Reveal delay={80}>
@@ -223,9 +229,9 @@ export default async function HomePage() {
       <section className="bg-sand/50 py-24 lg:py-32">
         <div className="mx-auto max-w-[1680px] px-6 sm:px-10 lg:px-16">
           <Reveal className="text-center">
-            <p className="eyebrow">Sessions & packages</p>
+            <p className="eyebrow">{locale === "mn" ? "Зураг авалт ба багц" : "Sessions & packages"}</p>
             <h2 className="display mx-auto mt-4 max-w-2xl text-balance text-[clamp(2.2rem,4.2vw,3.4rem)] text-ink">
-              Choose the time you need — we bring the rest
+              {locale === "mn" ? "Танд хэрэгтэй цагаа сонго — бусдыг нь бид зохицуулна" : "Choose the time you need — we bring the rest"}
             </h2>
           </Reveal>
 
@@ -252,16 +258,16 @@ export default async function HomePage() {
                             highlight ? "text-champagne" : "text-gold"
                           }`}
                         >
-                          {pkg.badge}
+                          {localizeSiteContent(pkg.badge, locale)}
                         </span>
                       ) : null}
                       <div>
                         <p className={`text-[10px] uppercase tracking-[0.28em] ${highlight ? "text-cream/50" : "text-smoke"}`}>
-                          {pkg.duration_hours}h session
+                          {pkg.duration_hours}{locale === "mn" ? " цагийн зураг авалт" : "h session"}
                         </p>
-                        <h3 className="display mt-3 text-3xl">{pkg.name}</h3>
+                        <h3 className="display mt-3 text-3xl">                        {localizeSiteContent(pkg.name, locale)}</h3>
                         <p className={`mt-2 font-serif text-lg italic ${highlight ? "text-cream/70" : "text-smoke"}`}>
-                          {pkg.tagline}
+                          {localizeSiteContent(pkg.tagline, locale)}
                         </p>
                         <div className="mt-6 flex items-end gap-3">
                           <span className="display text-4xl">{formatAUD(price)}</span>
@@ -275,7 +281,7 @@ export default async function HomePage() {
                           {features.map((feature) => (
                             <li key={feature} className="flex gap-2.5">
                               <span className={highlight ? "text-champagne" : "text-gold"}>—</span>
-                              {feature}
+                              {localizeSiteContent(feature, locale)}
                             </li>
                           ))}
                         </ul>
@@ -288,7 +294,7 @@ export default async function HomePage() {
                             : "border border-ink/25 text-ink hover:bg-ink hover:text-cream"
                         }`}
                       >
-                        Book {pkg.name}
+                        {locale === "mn" ? `${localizeSiteContent(pkg.name, locale)} захиалах` : `Book ${pkg.name}`}
                       </Link>
                     </div>
                   </Reveal>
@@ -297,7 +303,7 @@ export default async function HomePage() {
             </div>
           <Reveal className="mt-10 text-center">
             <Link href="/packages" className="text-[10px] uppercase tracking-[0.26em] text-ink link-underline">
-              Compare all sessions & pricing →
+              {locale === "mn" ? "Бүх зураг авалт, үнийг харьцуулах →" : "Compare all sessions & pricing →"}
             </Link>
           </Reveal>
         </div>
@@ -314,7 +320,7 @@ export default async function HomePage() {
           />
         </div>
         <div className="relative mx-auto max-w-4xl px-6 sm:px-10">
-          <p className="eyebrow mb-10 text-center text-champagne/80">Kind words</p>
+          <p className="eyebrow mb-10 text-center text-champagne/80">{locale === "mn" ? "Сайхан үгс" : "Kind words"}</p>
           <TestimonialCarousel
             items={testimonials.map((t) => ({
               id: t.id,
@@ -331,7 +337,7 @@ export default async function HomePage() {
       <section className="mx-auto max-w-[1680px] px-6 py-24 sm:px-10 lg:px-16">
         <Reveal className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="eyebrow">Behind the scenes</p>
+            <p className="eyebrow">{locale === "mn" ? "Ажлын ар дахь агшин" : "Behind the scenes"}</p>
             <h2 className="display mt-4 text-[clamp(2rem,3.6vw,2.8rem)] text-ink">@marasphotography</h2>
           </div>
           <a
@@ -340,7 +346,7 @@ export default async function HomePage() {
             rel="noreferrer"
             className="text-[10px] uppercase tracking-[0.26em] text-ink link-underline"
           >
-            Follow on Instagram →
+            {locale === "mn" ? "Instagram дагах →" : "Follow on Instagram →"}
           </a>
         </Reveal>
         <div className="mt-10 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
@@ -373,8 +379,8 @@ export default async function HomePage() {
       {/* ---------------------------------- faq ---------------------------------- */}
       <section className="mx-auto max-w-4xl px-6 pb-24 sm:px-10">
         <Reveal>
-          <p className="eyebrow">Good to know</p>
-          <h2 className="display mt-4 text-[clamp(2rem,3.6vw,2.8rem)] text-ink">Questions, answered</h2>
+          <p className="eyebrow">{locale === "mn" ? "Мэдэхэд илүүдэхгүй" : "Good to know"}</p>
+          <h2 className="display mt-4 text-[clamp(2rem,3.6vw,2.8rem)] text-ink">{locale === "mn" ? "Түгээмэл асуулт, хариулт" : "Questions, answered"}</h2>
           <div className="mt-10">
             <Accordion items={settings.faqs.slice(0, 4)} />
           </div>
@@ -385,18 +391,19 @@ export default async function HomePage() {
       <section className="relative overflow-hidden bg-burgundy py-24 text-cream lg:py-28">
         <div className="mx-auto max-w-3xl px-6 text-center sm:px-10">
           <Reveal>
-            <p className="eyebrow text-champagne">Let&apos;s begin</p>
+            <p className="eyebrow text-champagne">{locale === "mn" ? "Эхэлцгээе" : "Let&apos;s begin"}</p>
             <h2 className="display mt-5 text-balance text-[clamp(2.4rem,5vw,4rem)] text-cream">
-              Tell us the story you want to keep.
+              {locale === "mn" ? "Хадгалж үлдэхийг хүссэн түүхээ бидэнд ярь." : "Tell us the story you want to keep."}
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-cream/70">
-              Choose a collection, pick a date, and we will confirm within one business day. A 30%
-              deposit reserves your session.
+              {locale === "mn"
+                ? "Цуглуулга, өдрөө сонгоод захиалгаа илгээнэ үү. Бид ажлын нэг өдрийн дотор баталгаажуулна. 30%-ийн урьдчилгаа таны товыг хадгална."
+                : "Choose a collection, pick a date, and we will confirm within one business day. A 30% deposit reserves your session."}
             </p>
             <div className="mt-9 flex flex-wrap justify-center gap-4">
-              <Link href="/book" className="btn-champagne">Book a session</Link>
+              <Link href="/book" className="btn-champagne">{locale === "mn" ? "Зураг авуулах" : "Book a session"}</Link>
               <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="btn-outline-light">
-                WhatsApp Mara
+                {locale === "mn" ? "Марад WhatsApp бичих" : "WhatsApp Mara"}
               </a>
             </div>
           </Reveal>

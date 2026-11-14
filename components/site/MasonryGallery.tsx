@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Lightbox, type LightboxImage } from "./Lightbox";
 import { sizedImage } from "@/lib/img";
 import { cn } from "@/lib/utils";
+import { useSiteLocale } from "@/lib/use-site-locale";
+import { localizeImageTitle } from "@/lib/site-locale";
 
 export function MasonryGallery({
   images,
@@ -22,12 +24,14 @@ export function MasonryGallery({
   likes: Record<string, { count: number; liked: boolean }>;
   initialImageId?: string;
 }) {
+  const locale = useSiteLocale();
   const startIndex = initialImageId ? Math.max(0, images.findIndex((i) => i.id === initialImageId)) : -1;
   const [open, setOpen] = useState(startIndex >= 0);
   const [index, setIndex] = useState(startIndex >= 0 ? startIndex : 0);
 
   const enriched = images.map((image) => ({
     ...image,
+    title: localizeImageTitle(image.title, locale),
     likes: likes[image.id]?.count ?? image.likes ?? 0,
     liked: likes[image.id]?.liked ?? image.liked ?? false,
   }));
@@ -47,7 +51,7 @@ export function MasonryGallery({
               "group relative block w-full overflow-hidden bg-sand text-left",
               i % 7 === 0 ? "aspect-[3/4]" : i % 5 === 0 ? "aspect-square" : "aspect-[4/5]",
             )}
-            aria-label={`Open ${image.title}`}
+            aria-label={locale === "mn" ? `${image.title} нээх` : `Open ${image.title}`}
           >
             <img
               src={sizedImage(image.url, 900)}

@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { loginAction, registerAction } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
+import { useSiteLocale } from "@/lib/use-site-locale";
 
 export function AuthForms() {
+  const mn = useSiteLocale() === "mn";
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [busy, setBusy] = useState(false);
@@ -49,7 +51,7 @@ export function AuthForms() {
               mode === value ? "border-b border-ink text-ink" : "text-smoke hover:text-ink",
             )}
           >
-            {value === "login" ? "Sign in" : "Create account"}
+            {value === "login" ? (mn ? "Нэвтрэх" : "Sign in") : (mn ? "Бүртгэл үүсгэх" : "Create account")}
           </button>
         ))}
       </div>
@@ -58,11 +60,11 @@ export function AuthForms() {
         {mode === "register" ? (
           <>
             <div>
-              <label className="label" htmlFor="auth-name">Full name</label>
+              <label className="label" htmlFor="auth-name">{mn ? "Овог, нэр" : "Full name"}</label>
               <input id="auth-name" className="field" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
             <div>
-              <label className="label" htmlFor="auth-phone">Phone / WhatsApp</label>
+              <label className="label" htmlFor="auth-phone">{mn ? "Утас / WhatsApp" : "Phone / WhatsApp"}</label>
               <input id="auth-phone" className="field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
           </>
@@ -72,7 +74,7 @@ export function AuthForms() {
           <input id="auth-email" type="email" className="field" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         </div>
         <div>
-          <label className="label" htmlFor="auth-password">Password</label>
+          <label className="label" htmlFor="auth-password">{mn ? "Нууц үг" : "Password"}</label>
           <input
             id="auth-password"
             type="password"
@@ -83,20 +85,21 @@ export function AuthForms() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
           {mode === "register" ? (
-            <p className="mt-2 text-[11px] text-smoke/70">At least 8 characters.</p>
+            <p className="mt-2 text-[11px] text-smoke/70">{mn ? "Дор хаяж 8 тэмдэгт байна." : "At least 8 characters."}</p>
           ) : null}
         </div>
         {error ? (
           <p className="border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">{error}</p>
         ) : null}
         <button type="submit" disabled={busy} className={cn("btn-dark w-full", busy && "opacity-60")}>
-          {busy ? "One moment…" : mode === "login" ? "Sign in" : "Create my account"}
+          {busy ? (mn ? "Түр хүлээнэ үү…" : "One moment…") : mode === "login" ? (mn ? "Нэвтрэх" : "Sign in") : (mn ? "Бүртгэл үүсгэх" : "Create my account")}
         </button>
       </form>
 
       <p className="mt-6 text-center text-[11px] leading-relaxed text-smoke/70">
-        Your account keeps every booking, payment and receipt in one place. You can always book as a
-        guest and look the booking up later.
+        {mn
+          ? "Таны бүртгэл бүх захиалга, төлбөр, баримтыг нэг дор хадгална. Зочны эрхээр захиалаад дараа нь захиалгаа шалгах боломжтой."
+          : "Your account keeps every booking, payment and receipt in one place. You can always book as a guest and look the booking up later."}
       </p>
     </div>
   );

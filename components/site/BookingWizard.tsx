@@ -7,6 +7,8 @@ import { checkPromotionAction } from "@/app/actions/promotions";
 import { uploadReferenceAction } from "@/app/actions/admin";
 import { formatAUD } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useSiteLocale } from "@/lib/use-site-locale";
+import { localizeSiteContent } from "@/lib/site-locale";
 
 interface Option {
   id: string;
@@ -39,7 +41,10 @@ export interface LocationOption {
   mapsUrl: string;
 }
 
-const STEPS = ["Session", "Date & time", "Location", "Your details", "Review"];
+const STEPS = {
+  en: ["Session", "Date & time", "Location", "Your details", "Review"],
+  mn: ["Сешн", "Өдөр ба цаг", "Байршил", "Таны мэдээлэл", "Шалгах"],
+};
 
 export function BookingWizard({
   categories,
@@ -60,6 +65,90 @@ export function BookingWizard({
   initialPackage?: string;
   initialLocation?: string;
 }) {
+  const mn = useSiteLocale() === "mn";
+  const text = mn
+    ? {
+        requestReceived: "Хүсэлт хүлээн авлаа",
+        thankYou: "Баярлалаа",
+        reviewRequests: "Мара хүсэлт бүрийг, байршлыг оролцуулан, биечлэн хянаж ажлын нэг өдрийн дотор баталгаажуулна.",
+        requestRef: "Таны захиалгын дугаар",
+        awaitingApproval: "баталгаажуулах хүлээлттэй",
+        included: "Багтсан",
+        total: "Нийт",
+        deposit: "Захиалгыг баталгаажуулах урьдчилгаа",
+        payDeposit: "Урьдчилгаа төлөх",
+        viewBooking: "Захиалгаа харах",
+        saveReference: "Захиалгын дугаараа хадгална уу. Та захиалгын төлөвөө хүссэн үедээ",
+        bookingLookup: "захиалга шалгах хэсгээс",
+        sessionStep: "Нэгдүгээр алхам · зураг авалт",
+        whatPhoto: "Юуны зураг авахуулах вэ?",
+        packageStep: "Нэгдүгээр алхам · багц",
+        customScope: "Тусгай багц",
+        quote: "Үнийн санал",
+        depositRate: "урьдчилгаа",
+        selected: "✓ Сонгосон",
+        select: "Сонгох",
+        optionalExtras: "Нэмэлт үйлчилгээ",
+        extrasHelp: "Нэмэлт засвартай зураг эсвэл цаг сонгоно уу. Үнэ таны сонгосон багцаас хамаарна.",
+        extraPhotos: "Нэмэлт засвартай зураг",
+        additionalHours: "Нэмэлт цаг",
+        addons: "Нэмэлтүүд",
+        dateStep: "Хоёрдугаар алхам · өдөр ба цаг",
+        when: "Хэзээ зураг авахуулах вэ?",
+        dateHelp: "Зураг авалт Мягмар–Ням гарагт 09:00–18:00 цагийн хооронд таны сонгосон байршилд явагдана. Зөвхөн боломжтой цагийг харуулах бөгөөд Мара эцсийн цагийг тантай баталгаажуулна.",
+        chooseDate: "Өдөр сонгох",
+        availableTimes: "Боломжтой цагууд",
+        checking: "Хуваарийг шалгаж байна…",
+        noTimes: "Энэ өдөр боломжтой цаг алга.",
+        locationStep: "Гуравдугаар алхам · байршил",
+        whereMeet: "Хаана уулзах вэ?",
+        locationHelp: "Мара таны сонгосон газарт очно. Түүний сайн мэдэх Сиднейн байршлуудаас сонгох эсвэл хаяг, газрын зургийн цэгээ илгээнэ үү. Байршил бүрийг баталгаажуулахын өмнө хянадаг.",
+        suggestedLocations: "Санал болгосон байршлууд",
+        ownLocation: "Өөрийн байршил",
+        noPreview: "Урьдчилсан зураг алга",
+        travel: "Аялал",
+        needsMinimum: "Хамгийн багадаа",
+        address: "Хаяг эсвэл газар *",
+        mapsLink: "Google Maps холбоос (заавал биш)",
+        pinHelp: "Газрын зургийн цэг нь Марад нэвтрэх боломж, зогсоол болон гэрлийг шалгахад тусална. Тусгай байршлын үнийг тусад нь тооцож, автоматаар баталгаажуулахгүй.",
+        recommendation: "Энэ зураг авалтад байршил санал болгуулах хүсэлтэй байна.",
+        travelFee: "Энэ байршлын аяллын зардал:",
+        includedTotal: "— нийт үнэд багтсан.",
+        locationMinimum: "Энэ байршилд зураг авалтын доод үнэ",
+        choosePackage: "Илүү том багц сонгох эсвэл өөр байршил сонгоно уу.",
+        detailsStep: "Дөрөвдүгээр алхам · таны мэдээлэл",
+        whoMeet: "Тантай хэрхэн холбогдох вэ?",
+        fullName: "Овог, нэр *",
+        phone: "Утас / WhatsApp *",
+        people: "Хүний тоо",
+        notes: "Бидний мэдэх шаардлагатай зүйл байна уу?",
+        inspiration: "Жишээ зураг (заавал биш)",
+        uploading: "Хуулж байна…",
+        chooseImages: "Зураг сонгох",
+        removeReference: "Жишээ зургийг хасах",
+        uploadHelp: "6 хүртэл зураг, тус бүр 8 МБ. Өнгө аяс, поз, байршил гээд тус болох зүйлсээ оруулна уу.",
+        reviewStep: "Тавдугаар алхам · шалгах",
+        oneLastLook: "Нэг шалгаад үзье",
+        inspirationCount: "зураг хавсаргав",
+        none: "Байхгүй",
+        submitHelp: "Хүсэлт илгээхэд төлбөр авахгүй. Мара өдөр болон зөвшөөрлийг шалгасны дараа та сонгосон багцын урьдчилгааг төлнө.",
+        summary: "Товч мэдээлэл",
+        session: "Зураг авалт",
+        extras: "Нэмэлт",
+        promoDiscount: "Урамшуулал",
+        promoCode: "Урамшууллын код (заавал биш)",
+        apply: "Ашиглах",
+        applied: "ашиглалаа —",
+        sendingRequest: "Хүсэлт илгээж байна…",
+        submitRequest: "Захиалгын хүсэлт илгээх",
+        back: "← Буцах",
+        continue: "Үргэлжлүүлэх",
+        toBeChosen: "Сонгоогүй",
+        customLocation: "Тусгай байршил",
+        travelIncluded: "Аялал багтсан",
+      }
+    : null;
+  const label = (english: string, mongolian: string) => (mn ? mongolian : english);
   const startPkg = packages.find((p) => p.slug === initialPackage) ?? packages[0];
   const startCat = categories.find((c) => c.slug === initialCategory);
   const startLoc = locations.find((l) => l.slug === initialLocation);
@@ -148,11 +237,11 @@ export function BookingWizard({
           result.slots.length
             ? result.slots.some((s) => s.available)
               ? null
-              : "Every slot on this date is taken. Try another day."
-            : result.reason ?? "No availability on this date.",
+              : localizeSiteContent("Every slot on this date is taken. Try another day.", mn ? "mn" : "en")
+            : localizeSiteContent(result.reason ?? "No availability on this date.", mn ? "mn" : "en"),
         );
       })
-      .catch(() => setSlotNote("Could not load availability — refresh and try again."))
+      .catch(() => setSlotNote(localizeSiteContent("Could not load availability — refresh and try again.", mn ? "mn" : "en")))
       .finally(() => !cancelled && setLoadingSlots(false));
     return () => {
       cancelled = true;
@@ -193,9 +282,9 @@ export function BookingWizard({
   const locationLabel =
     locationMode === "suggested"
       ? selectedLocation
-        ? `${selectedLocation.name}, ${selectedLocation.area}`
-        : "To be chosen"
-      : customAddress.trim() || "Custom location";
+          ? `${localizeSiteContent(selectedLocation.name, mn ? "mn" : "en")}, ${localizeSiteContent(selectedLocation.area, mn ? "mn" : "en")}`
+        : (mn ? "Сонгоогүй" : "To be chosen")
+      : customAddress.trim() || (mn ? "Тусгай байршил" : "Custom location");
 
   const submit = async () => {
     setSubmitting(true);
@@ -229,27 +318,26 @@ export function BookingWizard({
   if (done) {
     return (
       <div className="mx-auto max-w-2xl border border-ink/12 bg-white/70 p-8 text-center sm:p-12">
-        <p className="eyebrow">Request received</p>
-        <h2 className="display mt-4 text-4xl">Thank you, {details.name.split(" ")[0]}.</h2>
+        <p className="eyebrow">{text?.requestReceived ?? "Request received"}</p>
+        <h2 className="display mt-4 text-4xl">{text?.thankYou ?? "Thank you"}, {details.name.split(" ")[0]}.</h2>
         <p className="mt-4 text-sm leading-relaxed text-smoke">
-          Your booking reference is{" "}
+          {mn ? `${text?.requestRef}: ` : "Your booking reference is "}
           <span className="mx-1 border border-ink/20 bg-sand px-2 py-1 font-mono text-sm tracking-widest text-ink">
             {done.code}
           </span>
-          . Mara reviews every request personally — including the location — and will confirm within
-          one business day.
+          . {mn ? text?.reviewRequests : "Mara reviews every request personally — including the location — and will confirm within one business day."}
         </p>
 
         <div className="mt-8 divide-y divide-ink/10 border-y border-ink/10 text-left text-sm">
           {[
-            ["Session", selectedCategory?.name ?? "—"],
-            ["Package", selectedPackage?.name ?? "—"],
-            ["Date", date],
-            ["Time", slot],
-            ["Location", `${locationLabel} · awaiting approval`],
-            ["Travel", travelFee ? formatAUD(travelFee) : "Included"],
-            ["Total", formatAUD(done.amount)],
-            ["Deposit to reserve", formatAUD(done.depositAmount)],
+            [label("Session", "Зураг авалт"), localizeSiteContent(selectedCategory?.name ?? "—", mn ? "mn" : "en")],
+            [label("Package", "Багц"), localizeSiteContent(selectedPackage?.name ?? "—", mn ? "mn" : "en")],
+            [label("Date", "Өдөр"), date],
+            [label("Time", "Цаг"), slot],
+            [label("Location", "Байршил"), `${locationLabel} · ${text?.awaitingApproval ?? "awaiting approval"}`],
+            [label("Travel", "Аялал"), travelFee ? formatAUD(travelFee) : text?.included ?? "Included"],
+            [text?.total ?? "Total", formatAUD(done.amount)],
+            [text?.deposit ?? "Deposit to reserve", formatAUD(done.depositAmount)],
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between gap-4 py-3">
               <span className="text-smoke">{label}</span>
@@ -261,17 +349,17 @@ export function BookingWizard({
         <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
           {done.amount > 0 ? (
             <Link href={`/pay/${done.code}`} className="btn-dark">
-              Pay the deposit
+              {text?.payDeposit ?? "Pay the deposit"}
             </Link>
           ) : null}
           <Link href={`/booking/${done.code}`} className="btn-outline">
-            View my booking
+            {text?.viewBooking ?? "View my booking"}
           </Link>
         </div>
         <p className="mt-6 text-[11px] leading-relaxed text-smoke/70">
-          Save your reference — you can check status any time at{" "}
+          {text?.saveReference ?? "Save your reference — you can check status any time at"}{" "}
           <Link href="/booking/lookup" className="underline">
-            booking lookup
+            {text?.bookingLookup ?? "booking lookup"}
           </Link>
           .
         </p>
@@ -282,7 +370,7 @@ export function BookingWizard({
   return (
     <div>
       <ol className="mb-10 grid grid-cols-5 gap-2 border-b border-ink/10 pb-5">
-        {STEPS.map((label, index) => (
+        {STEPS[mn ? "mn" : "en"].map((label, index) => (
           <li key={label} className="flex flex-col gap-2">
             <span
               className={cn(
@@ -305,8 +393,8 @@ export function BookingWizard({
       {step === 0 ? (
         <div className="space-y-10">
           <div>
-            <p className="eyebrow">Step one · the session</p>
-            <h2 className="display mt-3 text-3xl">What are we photographing?</h2>
+            <p className="eyebrow">{text?.sessionStep ?? "Step one · the session"}</p>
+            <h2 className="display mt-3 text-3xl">{text?.whatPhoto ?? "What are we photographing?"}</h2>
             <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {categories.map((category) => (
                 <button
@@ -320,14 +408,14 @@ export function BookingWizard({
                       : "border-ink/15 text-ink/70 hover:border-ink/50",
                   )}
                 >
-                  {category.name}
+                  {localizeSiteContent(category.name, mn ? "mn" : "en")}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <p className="eyebrow">Step one · the package</p>
+            <p className="eyebrow">{text?.packageStep ?? "Step one · the package"}</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {packages.map((pkg) => (
                 <button
@@ -350,26 +438,26 @@ export function BookingWizard({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-serif text-2xl">{pkg.name}</p>
+                      <p className="font-serif text-2xl">                      {localizeSiteContent(pkg.name, mn ? "mn" : "en")}</p>
                       <p className="mt-1 text-xs text-smoke">
-                        {pkg.durationHours}h · {pkg.editedPhotos ? `${pkg.editedPhotos} images` : "custom scope"}
+                        {pkg.durationHours}{mn ? " цаг" : "h"} · {pkg.editedPhotos ? `${pkg.editedPhotos} ${mn ? "зураг" : "images"}` : text?.customScope ?? "custom scope"}
                       </p>
                     </div>
                     <span className="text-right">
                       <span className="block font-serif text-xl">
-                        {pkg.price === 0 ? "Quote" : formatAUD(pkg.price)}
+                        {pkg.price === 0 ? text?.quote ?? "Quote" : formatAUD(pkg.price)}
                       </span>
                       <span className="text-[9px] uppercase tracking-[0.16em] text-smoke">
-                        {pkg.depositPercent}% deposit
+                        {pkg.depositPercent}% {text?.depositRate ?? "deposit"}
                       </span>
                     </span>
                   </div>
-                  <p className="mt-4 text-[13px] leading-relaxed text-smoke">{pkg.tagline}</p>
+                  <p className="mt-4 text-[13px] leading-relaxed text-smoke">{localizeSiteContent(pkg.tagline, mn ? "mn" : "en")}</p>
                   <ul className="mt-4 space-y-1.5 text-[12px] text-smoke">
                     {pkg.features.slice(0, 3).map((feature) => (
                       <li key={feature} className="flex gap-2">
                         <span className="text-gold">—</span>
-                        {feature}
+                        {localizeSiteContent(feature, mn ? "mn" : "en")}
                       </li>
                     ))}
                   </ul>
@@ -379,7 +467,7 @@ export function BookingWizard({
                       packageId === pkg.id ? "text-gold" : "text-smoke/50",
                     )}
                   >
-                    {packageId === pkg.id ? "✓ Selected" : "Select"}
+                    {packageId === pkg.id ? (text?.selected ?? "✓ Selected") : (text?.select ?? "Select")}
                   </span>
                 </button>
               ))}
@@ -388,13 +476,13 @@ export function BookingWizard({
 
           {selectedPackage && !selectedPackage.quoteOnly ? (
             <div className="mt-8 border border-ink/10 bg-white/60 p-5">
-              <p className="eyebrow">Optional extras</p>
+              <p className="eyebrow">{text?.optionalExtras ?? "Optional extras"}</p>
               <p className="mt-2 text-[12px] leading-relaxed text-smoke">
-                Add more edited photographs or hours. Prices come from the package you selected.
+                {text?.extrasHelp ?? "Add more edited photographs or hours. Prices come from the package you selected."}
               </p>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label">Extra edited photos ({formatAUD(selectedPackage.extraPhotoPrice)} each)</label>
+                  <label className="label">{text?.extraPhotos ?? "Extra edited photos"} ({formatAUD(selectedPackage.extraPhotoPrice)} {mn ? "тус бүр" : "each"})</label>
                   <input
                     type="number"
                     min={0}
@@ -405,7 +493,7 @@ export function BookingWizard({
                   />
                 </div>
                 <div>
-                  <label className="label">Additional hours ({formatAUD(selectedPackage.extraHourPrice)} each)</label>
+                  <label className="label">{text?.additionalHours ?? "Additional hours"} ({formatAUD(selectedPackage.extraHourPrice)} {mn ? "тус бүр" : "each"})</label>
                   <input
                     type="number"
                     min={0}
@@ -419,7 +507,7 @@ export function BookingWizard({
               </div>
               {selectedPackage.addons.length ? (
                 <div className="mt-4">
-                  <p className="label">Add-ons</p>
+                  <p className="label">{text?.addons ?? "Add-ons"}</p>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {selectedPackage.addons.map((addon) => (
                       <label key={addon.id} className="flex items-center gap-2 border border-ink/12 bg-white/70 px-3 py-2 text-[12px]">
@@ -432,7 +520,7 @@ export function BookingWizard({
                             )
                           }
                         />
-                        <span className="flex-1">{addon.name}</span>
+                        <span className="flex-1">{localizeSiteContent(addon.name, mn ? "mn" : "en")}</span>
                         <span className="text-smoke">{formatAUD(addon.price)}</span>
                       </label>
                     ))}
@@ -447,15 +535,14 @@ export function BookingWizard({
       {step === 1 ? (
         <div className="space-y-8">
           <div>
-            <p className="eyebrow">Step two · date & time</p>
-            <h2 className="display mt-3 text-3xl">When would you like us?</h2>
+            <p className="eyebrow">{text?.dateStep ?? "Step two · date & time"}</p>
+            <h2 className="display mt-3 text-3xl">{text?.when ?? "When would you like us?"}</h2>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-smoke">
-              Sessions run Tuesday to Sunday, 09:00–18:00, at your chosen location. Only genuinely
-              available times are shown, and Mara confirms the exact window with you.
+              {text?.dateHelp ?? "Sessions run Tuesday to Sunday, 09:00–18:00, at your chosen location. Only genuinely available times are shown, and Mara confirms the exact window with you."}
             </p>
           </div>
           <div className="max-w-xs">
-            <label className="label" htmlFor="booking-date">Choose a date</label>
+            <label className="label" htmlFor="booking-date">{text?.chooseDate ?? "Choose a date"}</label>
             <input
               id="booking-date"
               type="date"
@@ -468,9 +555,9 @@ export function BookingWizard({
 
           {date ? (
             <div>
-              <p className="label">Available times</p>
+              <p className="label">{text?.availableTimes ?? "Available times"}</p>
               {loadingSlots ? (
-                <p className="text-sm text-smoke">Checking the calendar…</p>
+                <p className="text-sm text-smoke">{text?.checking ?? "Checking the calendar…"}</p>
               ) : slots.length ? (
                 <div className="grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
                   {slots.map((option) => (
@@ -491,10 +578,10 @@ export function BookingWizard({
                 </div>
               ) : (
                 <p className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  {slotNote ?? "No times available on this date."}
+                  {slotNote ?? text?.noTimes ?? "No times available on this date."}
                 </p>
               )}
-              {slotNote && slots.length ? <p className="mt-3 text-xs text-amber-700">{slotNote}</p> : null}
+              {slotNote && slots.length ?               <p className="mt-3 text-xs text-amber-700">{localizeSiteContent(slotNote, mn ? "mn" : "en")}</p> : null}
             </div>
           ) : null}
         </div>
@@ -503,11 +590,10 @@ export function BookingWizard({
       {step === 2 ? (
         <div className="space-y-8">
           <div>
-            <p className="eyebrow">Step three · the location</p>
-            <h2 className="display mt-3 text-3xl">Where shall we meet?</h2>
+            <p className="eyebrow">{text?.locationStep ?? "Step three · the location"}</p>
+            <h2 className="display mt-3 text-3xl">{text?.whereMeet ?? "Where shall we meet?"}</h2>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-smoke">
-              Mara comes to you. Choose one of the Sydney locations she knows well, or send your own
-              address or map pin. Every location is reviewed before it is confirmed.
+              {text?.locationHelp ?? "Mara comes to you. Choose one of the Sydney locations she knows well, or send your own address or map pin. Every location is reviewed before it is confirmed."}
             </p>
           </div>
 
@@ -520,7 +606,7 @@ export function BookingWizard({
                 locationMode === "suggested" ? "border-ink bg-ink text-cream" : "border-ink/20 text-smoke hover:border-ink/50",
               )}
             >
-              Suggested locations
+              {text?.suggestedLocations ?? "Suggested locations"}
             </button>
             <button
               type="button"
@@ -530,7 +616,7 @@ export function BookingWizard({
                 locationMode === "custom" ? "border-ink bg-ink text-cream" : "border-ink/20 text-smoke hover:border-ink/50",
               )}
             >
-              My own location
+              {text?.ownLocation ?? "My own location"}
             </button>
           </div>
 
@@ -560,32 +646,32 @@ export function BookingWizard({
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-[10px] uppercase tracking-[0.2em] text-smoke">
-                          No preview yet
+                          {text?.noPreview ?? "No preview yet"}
                         </div>
                       )}
                       {location.travelFee > 0 ? (
                         <span className="absolute right-3 top-3 bg-cream/95 px-2 py-1 text-[8px] uppercase tracking-[0.16em] text-ink">
-                          +{formatAUD(location.travelFee)} travel
+                          +{formatAUD(location.travelFee)} {text?.travel ?? "travel"}
                         </span>
                       ) : (
                         <span className="absolute right-3 top-3 bg-cream/95 px-2 py-1 text-[8px] uppercase tracking-[0.16em] text-ink">
-                          Travel included
+                          {text?.travelIncluded ?? "Travel included"}
                         </span>
                       )}
                     </div>
                     <div className="p-4">
-                      <p className="font-serif text-xl">{location.name}</p>
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-smoke">{location.area}</p>
+                      <p className="font-serif text-xl">{localizeSiteContent(location.name, mn ? "mn" : "en")}</p>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-smoke">{localizeSiteContent(location.area, mn ? "mn" : "en")}</p>
                       <p className="mt-2 text-[11px] leading-relaxed text-smoke/80">
-                        {location.styles.join(" · ")}
+                        {location.styles.map((style) => localizeSiteContent(style, mn ? "mn" : "en")).join(" · ")}
                       </p>
                       {blocked ? (
                         <p className="mt-3 text-[10px] uppercase tracking-[0.12em] text-burgundy">
-                          Needs a session over {formatAUD(location.minSpend)}
+                          {text?.needsMinimum ?? "Needs a session over"} {formatAUD(location.minSpend)}
                         </p>
                       ) : null}
                       {locationId === location.id ? (
-                        <p className="mt-3 text-[9px] uppercase tracking-[0.22em] text-gold">✓ Selected</p>
+                        <p className="mt-3 text-[9px] uppercase tracking-[0.22em] text-gold">{text?.selected ?? "✓ Selected"}</p>
                       ) : null}
                     </div>
                   </button>
@@ -595,17 +681,17 @@ export function BookingWizard({
           ) : (
             <div className="max-w-xl space-y-5">
               <div>
-                <label className="label" htmlFor="b-address">Address or place *</label>
+                <label className="label" htmlFor="b-address">{text?.address ?? "Address or place *"}</label>
                 <input
                   id="b-address"
                   className="field"
                   value={customAddress}
                   onChange={(event) => setCustomAddress(event.target.value)}
-                  placeholder="e.g. 12 Notts Avenue, Bondi Beach NSW"
+                  placeholder={mn ? "Жишээ нь: 12 Notts Avenue, Bondi Beach NSW" : "e.g. 12 Notts Avenue, Bondi Beach NSW"}
                 />
               </div>
               <div>
-                <label className="label" htmlFor="b-maps">Google Maps link (optional)</label>
+                <label className="label" htmlFor="b-maps">{text?.mapsLink ?? "Google Maps link (optional)"}</label>
                 <input
                   id="b-maps"
                   className="field"
@@ -614,8 +700,7 @@ export function BookingWizard({
                   placeholder="https://maps.app.goo.gl/…"
                 />
                 <p className="mt-2 text-[11px] leading-relaxed text-smoke/70">
-                  A pin helps Mara check access, parking and light. Custom locations are quoted
-                  individually and never confirmed automatically.
+                  {text?.pinHelp ?? "A pin helps Mara check access, parking and light. Custom locations are quoted individually and never confirmed automatically."}
                 </p>
               </div>
               <label className="flex items-start gap-3 border border-ink/12 bg-white/60 p-4 text-[12px] leading-relaxed text-smoke">
@@ -625,24 +710,25 @@ export function BookingWizard({
                   checked={wantsRecommendations}
                   onChange={(event) => setWantsRecommendations(event.target.checked)}
                 />
-                I would also like location recommendations for this session.
+                {text?.recommendation ?? "I would also like location recommendations for this session."}
               </label>
             </div>
           )}
 
           <div className="border border-ink/10 bg-white/50 p-5">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-smoke">Travel</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-smoke">{text?.travel ?? "Travel"}</p>
             <p className="mt-2 text-[12px] leading-relaxed text-smoke">{travelPolicy}</p>
             {travelFee > 0 ? (
               <p className="mt-3 text-[12px] text-ink">
-                Travel fee for this location: <span className="font-medium">{formatAUD(travelFee)}</span>{" "}
-                — included in your total.
+                {mn ? "Энэ байршлын аяллын зардал:" : "Travel fee for this location:"} <span className="font-medium">{formatAUD(travelFee)}</span>{" "}
+                {text?.includedTotal ?? "— included in your total."}
               </p>
             ) : null}
             {minSpendBlocked && selectedLocation ? (
               <p className="mt-3 border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] text-amber-800">
-                {selectedLocation.name} requires a minimum session of {formatAUD(selectedLocation.minSpend)}.
-                Choose a larger package, or pick another location.
+                {mn
+                  ? `${selectedLocation.name} байршилд зураг авалтын доод үнэ ${formatAUD(selectedLocation.minSpend)} байна. ${text?.choosePackage}`
+                  : `${selectedLocation.name} requires a minimum session of ${formatAUD(selectedLocation.minSpend)}. Choose a larger package, or pick another location.`}
               </p>
             ) : null}
           </div>
@@ -652,35 +738,35 @@ export function BookingWizard({
       {step === 3 ? (
         <div className="space-y-6">
           <div>
-            <p className="eyebrow">Step four · your details</p>
-            <h2 className="display mt-3 text-3xl">So we know who we are meeting</h2>
+            <p className="eyebrow">{text?.detailsStep ?? "Step four · your details"}</p>
+            <h2 className="display mt-3 text-3xl">{text?.whoMeet ?? "So we know who we are meeting"}</h2>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <label className="label" htmlFor="b-name">Full name *</label>
-              <input id="b-name" className="field" value={details.name} onChange={(e) => setDetails({ ...details, name: e.target.value })} placeholder="Alya Putri" />
+              <label className="label" htmlFor="b-name">{text?.fullName ?? "Full name *"}</label>
+              <input id="b-name" className="field" value={details.name} onChange={(e) => setDetails({ ...details, name: e.target.value })} placeholder={mn ? "Бат-Эрдэнэ" : "Alya Putri"} />
             </div>
             <div>
-              <label className="label" htmlFor="b-email">Email *</label>
+              <label className="label" htmlFor="b-email">{mn ? "Имэйл *" : "Email *"}</label>
               <input id="b-email" type="email" className="field" value={details.email} onChange={(e) => setDetails({ ...details, email: e.target.value })} placeholder="you@example.com" />
             </div>
             <div>
-              <label className="label" htmlFor="b-phone">Phone / WhatsApp *</label>
+              <label className="label" htmlFor="b-phone">{text?.phone ?? "Phone / WhatsApp *"}</label>
               <input id="b-phone" className="field" value={details.phone} onChange={(e) => setDetails({ ...details, phone: e.target.value })} placeholder="+61 412 000 000" />
             </div>
             <div>
-              <label className="label" htmlFor="b-people">Number of people</label>
+              <label className="label" htmlFor="b-people">{text?.people ?? "Number of people"}</label>
               <input id="b-people" type="number" min={1} max={500} className="field" value={details.people} onChange={(e) => setDetails({ ...details, people: Number(e.target.value) })} />
             </div>
             <div className="sm:col-span-2">
-              <label className="label" htmlFor="b-notes">Anything we should know?</label>
+              <label className="label" htmlFor="b-notes">{text?.notes ?? "Anything we should know?"}</label>
               <textarea id="b-notes" rows={4} className="field resize-none" value={details.notes} onChange={(e) => setDetails({ ...details, notes: e.target.value })} placeholder="Timings, accessibility needs, mood references, a backup plan for weather…" />
             </div>
             <div className="sm:col-span-2">
-              <label className="label">Inspiration images (optional)</label>
+              <label className="label">{text?.inspiration ?? "Inspiration images (optional)"}</label>
               <div className="flex flex-wrap items-center gap-3">
                 <label className="cursor-pointer border border-dashed border-ink/25 px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-smoke transition-colors hover:border-ink/60 hover:text-ink">
-                  {uploading ? "Uploading…" : "Choose images"}
+                  {uploading ? (text?.uploading ?? "Uploading…") : (text?.chooseImages ?? "Choose images")}
                   <input
                     type="file"
                     accept="image/*"
@@ -691,19 +777,19 @@ export function BookingWizard({
                 </label>
                 {references.map((url) => (
                   <span key={url} className="relative">
-                    <img src={url} alt="Reference" className="h-16 w-16 object-cover" />
+                    <img src={url} alt={mn ? "Жишээ зураг" : "Reference"} className="h-16 w-16 object-cover" />
                     <button
                       type="button"
                       onClick={() => setReferences((prev) => prev.filter((r) => r !== url))}
                       className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[10px] text-cream"
-                      aria-label="Remove reference"
+                      aria-label={text?.removeReference ?? "Remove reference"}
                     >
                       ×
                     </button>
                   </span>
                 ))}
               </div>
-              <p className="mt-2 text-[11px] text-smoke/70">Up to 6 images, 8 MB each. Mood, poses, places — anything that helps.</p>
+              <p className="mt-2 text-[11px] text-smoke/70">{text?.uploadHelp ?? "Up to 6 images, 8 MB each. Mood, poses, places — anything that helps."}</p>
             </div>
           </div>
         </div>
@@ -712,22 +798,22 @@ export function BookingWizard({
       {step === 4 ? (
         <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr]">
           <div>
-            <p className="eyebrow">Step five · review</p>
-            <h2 className="display mt-3 text-3xl">One last look</h2>
+            <p className="eyebrow">{text?.reviewStep ?? "Step five · review"}</p>
+            <h2 className="display mt-3 text-3xl">{text?.oneLastLook ?? "One last look"}</h2>
             <dl className="mt-7 divide-y divide-ink/10 border-y border-ink/10 text-sm">
               {[
-                ["Collection", selectedCategory?.name ?? "—"],
-                ["Package", `${selectedPackage?.name} · ${selectedPackage?.durationHours}h`],
-                ["Date", date],
-                ["Time", slot],
-                ["Location", locationLabel],
-                ["Travel", travelFee ? formatAUD(travelFee) : "Included"],
-                ["Name", details.name],
-                ["Email", details.email],
-                ["Phone", details.phone],
-                ["People", String(details.people)],
-                ["Notes", details.notes || "—"],
-                ["Inspiration", references.length ? `${references.length} image(s) attached` : "None"],
+                [label("Collection", "Цуглуулга"), localizeSiteContent(selectedCategory?.name ?? "—", mn ? "mn" : "en")],
+                [label("Package", "Багц"), `${localizeSiteContent(selectedPackage?.name ?? "", mn ? "mn" : "en")} · ${selectedPackage?.durationHours}${mn ? " цаг" : "h"}`],
+                [label("Date", "Өдөр"), date],
+                [label("Time", "Цаг"), slot],
+                [label("Location", "Байршил"), locationLabel],
+                [label("Travel", "Аялал"), travelFee ? formatAUD(travelFee) : text?.travelIncluded ?? "Included"],
+                [label("Name", "Нэр"), details.name],
+                [label("Email", "Имэйл"), details.email],
+                [label("Phone", "Утас"), details.phone],
+                [label("People", "Хүний тоо"), String(details.people)],
+                [label("Notes", "Тэмдэглэл"), details.notes || "—"],
+                [label("Inspiration", "Жишээ зураг"), references.length ? `${references.length} ${text?.inspirationCount ?? "image(s) attached"}` : text?.none ?? "None"],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-6 py-3">
                   <dt className="shrink-0 text-smoke">{label}</dt>
@@ -736,49 +822,48 @@ export function BookingWizard({
               ))}
             </dl>
             <p className="mt-5 text-[11px] leading-relaxed text-smoke/70">
-              Submitting a request does not charge you. Mara confirms the date and checks the location —
-              including permits — before you pay a {selectedPackage?.depositPercent}% deposit.
+              {text?.submitHelp ?? "Submitting a request does not charge you. Mara confirms the date and checks the location — including permits — before you pay a deposit."}
             </p>
           </div>
 
           <aside className="h-fit border border-ink/12 bg-white/70 p-6">
-            <p className="eyebrow">Summary</p>
-            <p className="mt-4 font-serif text-3xl">{selectedPackage?.name}</p>
-            <p className="mt-1 text-xs text-smoke">{selectedCategory?.name}</p>
+            <p className="eyebrow">{text?.summary ?? "Summary"}</p>
+            <p className="mt-4 font-serif text-3xl">{localizeSiteContent(selectedPackage?.name ?? "", mn ? "mn" : "en")}</p>
+            <p className="mt-1 text-xs text-smoke">{localizeSiteContent(selectedCategory?.name ?? "", mn ? "mn" : "en")}</p>
             <p className="mt-1 text-[11px] leading-relaxed text-smoke/80">{locationLabel}</p>
             <div className="mt-6 space-y-2 border-t border-ink/10 pt-5 text-sm">
               <div className="flex justify-between">
-                <span className="text-smoke">Session</span>
-                <span>{basePrice ? formatAUD(basePrice) : "Quoted separately"}</span>
+                <span className="text-smoke">{text?.session ?? "Session"}</span>
+                <span>{basePrice ? formatAUD(basePrice) : (mn ? "Тусад нь үнийн санал өгнө" : "Quoted separately")}</span>
               </div>
               {extrasTotal > 0 ? (
                 <div className="flex justify-between">
-                  <span className="text-smoke">Extras</span>
+                  <span className="text-smoke">{text?.extras ?? "Extras"}</span>
                   <span>{formatAUD(extrasTotal)}</span>
                 </div>
               ) : null}
               <div className="flex justify-between">
-                <span className="text-smoke">Travel</span>
-                <span>{travelFee ? formatAUD(travelFee) : "Included"}</span>
+                <span className="text-smoke">{text?.travel ?? "Travel"}</span>
+                <span>{travelFee ? formatAUD(travelFee) : text?.travelIncluded ?? "Included"}</span>
               </div>
               {discountAmount > 0 ? (
                 <div className="flex justify-between text-emerald-700">
-                  <span>Promo discount</span>
+                  <span>{text?.promoDiscount ?? "Promo discount"}</span>
                   <span>−{formatAUD(discountAmount)}</span>
                 </div>
               ) : null}
               <div className="flex justify-between border-t border-ink/10 pt-2">
-                <span className="text-smoke">Total</span>
+                <span className="text-smoke">{text?.total ?? "Total"}</span>
                 <span>{total ? formatAUD(total) : "—"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-smoke">Deposit ({selectedPackage?.depositPercent}%)</span>
+                <span className="text-smoke">{text?.deposit ?? "Deposit"} ({selectedPackage?.depositPercent}%)</span>
                 <span>{basePrice ? formatAUD(deposit) : "—"}</span>
               </div>
             </div>
 
             <div className="mt-4">
-              <label className="label">Promo code (optional)</label>
+              <label className="label">{text?.promoCode ?? "Promo code (optional)"}</label>
               <div className="flex gap-2">
                 <input
                   className="field"
@@ -804,12 +889,12 @@ export function BookingWizard({
                   }}
                   className="btn-dark px-4 py-2 text-[9px] disabled:opacity-50"
                 >
-                  Apply
+                  {text?.apply ?? "Apply"}
                 </button>
               </div>
               {appliedPromo ? (
                 <p className="mt-2 text-[11px] text-emerald-700">
-                  {appliedPromo.code} applied — {formatAUD(appliedPromo.discount)} off.
+                  {appliedPromo.code} {text?.applied ?? "applied —"} {formatAUD(appliedPromo.discount)} {mn ? "хөнгөлөлт." : "off."}
                 </p>
               ) : null}
               {promoError ? <p className="mt-2 text-[11px] text-rose-700">{promoError}</p> : null}
@@ -823,7 +908,7 @@ export function BookingWizard({
               disabled={submitting}
               className={cn("btn-dark mt-6 w-full", submitting && "opacity-60")}
             >
-              {submitting ? "Sending request…" : "Submit booking request"}
+              {submitting ? (text?.sendingRequest ?? "Sending request…") : (text?.submitRequest ?? "Submit booking request")}
             </button>
           </aside>
         </div>
@@ -842,7 +927,7 @@ export function BookingWizard({
             step === 0 && "invisible",
           )}
         >
-          ← Back
+          {text?.back ?? "← Back"}
         </button>
         {step < 4 ? (
           <button
@@ -851,7 +936,7 @@ export function BookingWizard({
             onClick={() => setStep((s) => Math.min(4, s + 1))}
             className={cn("btn-dark", !canContinue() && "cursor-not-allowed opacity-40")}
           >
-            Continue
+            {text?.continue ?? "Continue"}
           </button>
         ) : null}
       </div>

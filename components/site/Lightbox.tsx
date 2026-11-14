@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toggleLikeAction } from "@/app/actions/galleries";
 import { sizedImage } from "@/lib/img";
 import { cn } from "@/lib/utils";
+import { useSiteLocale } from "@/lib/use-site-locale";
 
 export interface LightboxImage {
   id: string;
@@ -31,6 +32,7 @@ export function Lightbox({
   watermark: boolean;
   downloadsEnabled: boolean;
 }) {
+  const mn = useSiteLocale() === "mn";
   const [likes, setLikes] = useState<Record<string, { count: number; liked: boolean }>>({});
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -94,10 +96,10 @@ export function Lightbox({
         await navigator.share({ title: `${current.title} — ${categoryName}`, url });
       } else {
         await navigator.clipboard.writeText(url);
-        setToast("Link copied to clipboard");
+        setToast(mn ? "Холбоос хууллаа" : "Link copied to clipboard");
       }
     } catch {
-      setToast("Could not share this image");
+      setToast(mn ? "Зургийг хуваалцаж чадсангүй" : "Could not share this image");
     }
   };
 
@@ -140,9 +142,9 @@ export function Lightbox({
       anchor.download = name;
       anchor.click();
       URL.revokeObjectURL(href);
-      setToast(watermark ? "Downloaded with watermark" : "Download started");
+      setToast(watermark ? (mn ? "Усны тэмдэгтэй татлаа" : "Downloaded with watermark") : (mn ? "Татаж эхэллээ" : "Download started"));
     } catch {
-      setToast("Download failed — try again");
+      setToast(mn ? "Татаж чадсангүй — дахин оролдоно уу" : "Download failed — try again");
     } finally {
       setBusy(false);
     }
@@ -155,7 +157,7 @@ export function Lightbox({
       className="fixed inset-0 z-[90] flex flex-col bg-ink/97 backdrop-blur-md animate-fadeIn"
       role="dialog"
       aria-modal="true"
-      aria-label={`${current.title} — full screen preview`}
+      aria-label={mn ? `${current.title} — бүтэн дэлгэцээр харах` : `${current.title} — full screen preview`}
       onTouchStart={(e) => (touchStart.current = e.touches[0].clientX)}
       onTouchEnd={(e) => {
         if (touchStart.current === null) return;
@@ -173,7 +175,7 @@ export function Lightbox({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={mn ? "Хаах" : "Close"}
           className="flex h-10 w-10 items-center justify-center border border-cream/20 text-cream transition-colors hover:border-champagne hover:text-champagne"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
@@ -186,7 +188,7 @@ export function Lightbox({
         <button
           type="button"
           onClick={() => step(-1)}
-          aria-label="Previous image"
+          aria-label={mn ? "Өмнөх зураг" : "Previous image"}
           className="absolute left-2 z-10 flex h-12 w-12 items-center justify-center border border-cream/15 text-cream/70 transition-colors hover:border-champagne hover:text-champagne sm:left-6"
         >
           <svg width="18" height="10" viewBox="0 0 18 10" fill="none" aria-hidden>
@@ -212,7 +214,7 @@ export function Lightbox({
         <button
           type="button"
           onClick={() => step(1)}
-          aria-label="Next image"
+          aria-label={mn ? "Дараагийн зураг" : "Next image"}
           className="absolute right-2 z-10 flex h-12 w-12 items-center justify-center border border-cream/15 text-cream/70 transition-colors hover:border-champagne hover:text-champagne sm:right-6"
         >
           <svg width="18" height="10" viewBox="0 0 18 10" fill="none" aria-hidden>
@@ -247,7 +249,7 @@ export function Lightbox({
             onClick={share}
             className="flex items-center gap-2 border border-cream/20 px-4 py-2.5 text-[10px] uppercase tracking-[0.18em] text-cream/70 transition-colors hover:border-cream/60 hover:text-cream"
           >
-            Share
+            {mn ? "Хуваалцах" : "Share"}
           </button>
           {downloadsEnabled ? (
             <button
@@ -256,11 +258,11 @@ export function Lightbox({
               disabled={busy}
               className="flex items-center gap-2 bg-cream px-4 py-2.5 text-[10px] uppercase tracking-[0.18em] text-ink transition-colors hover:bg-champagne disabled:opacity-60"
             >
-              {busy ? "Preparing…" : "Download"}
+              {busy ? (mn ? "Бэлтгэж байна…" : "Preparing…") : (mn ? "Татах" : "Download")}
             </button>
           ) : (
             <span className="border border-cream/10 px-4 py-2.5 text-[10px] uppercase tracking-[0.18em] text-cream/30">
-              Downloads off
+              {mn ? "Татах боломжгүй" : "Downloads off"}
             </span>
           )}
         </div>

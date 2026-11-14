@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Reveal } from "@/components/site/Reveal";
 import { WorkGrid } from "@/components/site/WorkGrid";
 import { getCategories } from "@/lib/data";
+import { currentSiteLocale } from "@/lib/current-site-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,8 @@ export const metadata = {
 };
 
 export default async function WorkPage() {
-  const categories = await getCategories();
+  const [categories, locale] = await Promise.all([getCategories(), currentSiteLocale()]);
+  const mn = locale === "mn";
   const total = categories.reduce((sum, c) => sum + c.image_count, 0);
 
   return (
@@ -19,13 +21,13 @@ export default async function WorkPage() {
       <section className="border-b border-ink/10 bg-sand/40 pb-16 pt-36 lg:pb-20 lg:pt-44">
         <div className="mx-auto max-w-[1680px] px-6 sm:px-10 lg:px-16">
           <Reveal>
-            <p className="eyebrow">The collection</p>
+            <p className="eyebrow">{mn ? "Цуглуулга" : "The collection"}</p>
             <h1 className="display mt-5 max-w-3xl text-balance text-[clamp(3rem,7vw,5.6rem)] text-ink">
-              The work, in all its quiet variety
+              {mn ? "Бүтээлүүдийн олон өнгө аяс" : "The work, in all its quiet variety"}
             </h1>
             <div className="mt-8 flex flex-wrap gap-x-10 gap-y-3 text-[10px] uppercase tracking-[0.22em] text-smoke">
-              <span>{categories.length} collections</span>
-              <span>{total} frames</span>
+              <span>{categories.length} {mn ? "цуглуулга" : "collections"}</span>
+              <span>{total} {mn ? "зураг" : "frames"}</span>
               <span>Sydney · Australia · Worldwide</span>
             </div>
           </Reveal>
@@ -46,11 +48,13 @@ export default async function WorkPage() {
 
         <div className="mt-20 flex flex-col items-center justify-between gap-6 border-t border-ink/10 pt-10 sm:flex-row">
           <p className="max-w-md text-sm leading-relaxed text-smoke">
-            Every collection can be commissioned for your own story — same eye, your moments.
+            {mn
+              ? "Цуглуулга бүр таны түүхийг өгүүлэх боломжтой — нэг мэдрэмж, таны нандин мөчүүд."
+              : "Every collection can be commissioned for your own story — same eye, your moments."}
           </p>
           <div className="flex gap-3">
-            <Link href="/packages" className="btn-outline">View sessions</Link>
-            <Link href="/book" className="btn-dark">Book a session</Link>
+            <Link href="/packages" className="btn-outline">{mn ? "Сешнүүдийг үзэх" : "View sessions"}</Link>
+            <Link href="/book" className="btn-dark">{mn ? "Зураг авуулах" : "Book a session"}</Link>
           </div>
         </div>
       </section>

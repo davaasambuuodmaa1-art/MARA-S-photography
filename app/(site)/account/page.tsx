@@ -3,22 +3,25 @@ import { AuthForms } from "@/components/site/AuthForms";
 import { Reveal } from "@/components/site/Reveal";
 import { currentUser } from "@/lib/auth";
 import { getUserBookings, getUserPayments, getPrivateGalleriesForEmail } from "@/lib/data";
+import { currentSiteLocale } from "@/lib/current-site-locale";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Your account" };
 
 export default async function AccountPage() {
-  const user = await currentUser();
+  const [user, locale] = await Promise.all([currentUser(), currentSiteLocale()]);
+  const mn = locale === "mn";
 
   if (!user) {
     return (
       <section className="mx-auto max-w-3xl px-6 pb-24 pt-36 sm:px-10 lg:pt-44">
         <Reveal>
-          <p className="eyebrow">Client account</p>
-          <h1 className="display mt-4 text-[clamp(2.4rem,5vw,3.6rem)] text-ink">Your photographs, in one place</h1>
+          <p className="eyebrow">{mn ? "Үйлчлүүлэгчийн бүртгэл" : "Client account"}</p>
+          <h1 className="display mt-4 text-[clamp(2.4rem,5vw,3.6rem)] text-ink">{mn ? "Таны бүх зураг нэг дор" : "Your photographs, in one place"}</h1>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-smoke">
-            Sign in to see your bookings, payment history and receipts — or create an account with the
-            same email you booked with.
+            {mn
+              ? "Захиалга, төлбөрийн түүх болон баримтаа харахын тулд нэвтрэх эсвэл захиалга хийхдээ ашигласан имэйлээр бүртгэл үүсгэнэ үү."
+              : "Sign in to see your bookings, payment history and receipts — or create an account with the same email you booked with."}
           </p>
         </Reveal>
         <div className="mt-12">
@@ -37,8 +40,8 @@ export default async function AccountPage() {
   return (
     <section className="mx-auto max-w-[1240px] px-6 pb-24 pt-32 sm:px-10 lg:pt-40">
       <Reveal>
-        <p className="eyebrow">Client account</p>
-        <h1 className="display mt-3 text-[clamp(2.2rem,4.6vw,3.4rem)] text-ink">Welcome back, {user.name.split(" ")[0]}</h1>
+        <p className="eyebrow">{mn ? "Үйлчлүүлэгчийн бүртгэл" : "Client account"}</p>
+        <h1 className="display mt-3 text-[clamp(2.2rem,4.6vw,3.4rem)] text-ink">{mn ? `Тавтай морил, ${user.name.split(" ")[0]}` : `Welcome back, ${user.name.split(" ")[0]}`}</h1>
       </Reveal>
       <div className="mt-12">
         <AccountPanel
@@ -68,8 +71,8 @@ export default async function AccountPage() {
 
       {galleries.length ? (
         <div className="mt-14">
-          <p className="eyebrow">Private galleries</p>
-          <h2 className="display mt-3 text-2xl">Your photographs</h2>
+          <p className="eyebrow">{mn ? "Хувийн галерей" : "Private galleries"}</p>
+          <h2 className="display mt-3 text-2xl">{mn ? "Таны зургууд" : "Your photographs"}</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {galleries.map((gallery) => {
               let cover = "";
@@ -91,7 +94,7 @@ export default async function AccountPage() {
                   <div className="p-4">
                     <p className="font-serif text-lg">{gallery.title}</p>
                     <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-smoke">
-                      {JSON.parse(gallery.images).length} photograph{JSON.parse(gallery.images).length === 1 ? "" : "s"}
+                      {JSON.parse(gallery.images).length} {mn ? "зураг" : `photograph${JSON.parse(gallery.images).length === 1 ? "" : "s"}`}
                     </p>
                   </div>
                 </a>

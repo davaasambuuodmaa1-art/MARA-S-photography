@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { startPaymentAction } from "@/app/actions/payments";
 import { formatAUD, cn } from "@/lib/utils";
+import { useSiteLocale } from "@/lib/use-site-locale";
 
 export function PaymentPanel({
   code,
@@ -21,6 +22,7 @@ export function PaymentPanel({
   status: string;
   methods: { card: boolean; wallet: boolean; bank: boolean; bankDetails: string };
 }) {
+  const mn = useSiteLocale() === "mn";
   const router = useRouter();
   const [busy, setBusy] = useState<"deposit" | "full" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,13 +41,13 @@ export function PaymentPanel({
   if (settled) {
     return (
       <div className="border border-emerald-200 bg-emerald-50/70 p-6">
-        <p className="text-[10px] uppercase tracking-[0.22em] text-emerald-800">Paid in full</p>
-        <p className="mt-2 font-serif text-2xl text-emerald-900">Nothing outstanding.</p>
+        <p className="text-[10px] uppercase tracking-[0.22em] text-emerald-800">{mn ? "Бүрэн төлөгдсөн" : "Paid in full"}</p>
+        <p className="mt-2 font-serif text-2xl text-emerald-900">{mn ? "Төлөх үлдэгдэлгүй." : "Nothing outstanding."}</p>
         <p className="mt-2 text-sm text-emerald-800/80">
-          {formatAUD(amount)} received and verified. Your session is confirmed.
+          {mn ? `${formatAUD(amount)} хүлээн авч баталгаажуулсан. Таны зураг авалт баталгаажлаа.` : `${formatAUD(amount)} received and verified. Your session is confirmed.`}
         </p>
         <Link href={`/receipt/${code}`} className="btn-outline mt-5">
-          View payment receipt
+          {mn ? "Төлбөрийн баримт харах" : "View payment receipt"}
         </Link>
       </div>
     );
@@ -54,12 +56,12 @@ export function PaymentPanel({
   if (["cancelled", "rejected"].includes(status)) {
     return (
       <div className="border border-ink/12 bg-white/60 p-6">
-        <p className="text-[10px] uppercase tracking-[0.22em] text-smoke">Payment</p>
-        <p className="mt-2 font-serif text-2xl">This booking is closed.</p>
+        <p className="text-[10px] uppercase tracking-[0.22em] text-smoke">{mn ? "Төлбөр" : "Payment"}</p>
+        <p className="mt-2 font-serif text-2xl">{mn ? "Энэ захиалга хаагдсан." : "This booking is closed."}</p>
         <p className="mt-2 text-sm text-smoke">
-          No payment is required. If you would like to book again, start a new request.
+          {mn ? "Төлбөр төлөх шаардлагагүй. Дахин захиалах бол шинэ хүсэлт илгээнэ үү." : "No payment is required. If you would like to book again, start a new request."}
         </p>
-        <Link href="/book" className="btn-outline mt-5">Book another session</Link>
+        <Link href="/book" className="btn-outline mt-5">{mn ? "Дахин зураг авуулах" : "Book another session"}</Link>
       </div>
     );
   }
@@ -67,10 +69,10 @@ export function PaymentPanel({
   if (amount === 0) {
     return (
       <div className="border border-ink/12 bg-white/60 p-6">
-        <p className="text-[10px] uppercase tracking-[0.22em] text-smoke">Payment</p>
-        <p className="mt-2 font-serif text-2xl">This is a bespoke commission.</p>
+        <p className="text-[10px] uppercase tracking-[0.22em] text-smoke">{mn ? "Төлбөр" : "Payment"}</p>
+        <p className="mt-2 font-serif text-2xl">{mn ? "Энэ бол тусгай захиалга." : "This is a bespoke commission."}</p>
         <p className="mt-2 text-sm text-smoke">
-          Mara prepares a tailored proposal and payment link within 48 hours. Nothing to pay yet.
+          {mn ? "Мара 48 цагийн дотор танд тохирсон санал болон төлбөрийн холбоосыг бэлтгэнэ. Одоогоор төлбөр төлөхгүй." : "Mara prepares a tailored proposal and payment link within 48 hours. Nothing to pay yet."}
         </p>
       </div>
     );
@@ -78,21 +80,21 @@ export function PaymentPanel({
 
   return (
     <div className="border border-ink/12 bg-white/70 p-6">
-      <p className="text-[10px] uppercase tracking-[0.22em] text-smoke">Payment</p>
+      <p className="text-[10px] uppercase tracking-[0.22em] text-smoke">{mn ? "Төлбөр" : "Payment"}</p>
       <p className="mt-2 font-serif text-2xl">
-        {depositPaid ? `${formatAUD(amount - depositAmount)} remaining` : `${formatAUD(depositAmount)} reserves your date`}
+        {depositPaid ? (mn ? `${formatAUD(amount - depositAmount)} үлдэгдэл` : `${formatAUD(amount - depositAmount)} remaining`) : (mn ? `${formatAUD(depositAmount)} төлснөөр тов хадгалагдана` : `${formatAUD(depositAmount)} reserves your date`)}
       </p>
       <p className="mt-2 text-xs leading-relaxed text-smoke">
-        Total session {formatAUD(amount)}.{" "}
+        {mn ? `Нийт үнэ ${formatAUD(amount)}. ` : `Total session ${formatAUD(amount)}. `}
         {depositPaid
-          ? `Deposit of ${formatAUD(depositAmount)} received. The balance is due seven days before your session.`
-          : `Pay a ${Math.round((depositAmount / amount) * 100)}% deposit now, or settle the full amount at once.`}
+          ? (mn ? `${formatAUD(depositAmount)} урьдчилгаа хүлээн авсан. Үлдэгдлийг зураг авалтаас долоо хоногийн өмнө төлнө.` : `Deposit of ${formatAUD(depositAmount)} received. The balance is due seven days before your session.`)
+          : (mn ? `Одоо ${Math.round((depositAmount / amount) * 100)}% урьдчилгаа төлөх эсвэл нийт дүнг нэг дор төлнө үү.` : `Pay a ${Math.round((depositAmount / amount) * 100)}% deposit now, or settle the full amount at once.`)}
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2 text-[9px] uppercase tracking-[0.16em] text-smoke">
-        {methods.card ? <span className="border border-ink/15 px-2.5 py-1">Card</span> : null}
+        {methods.card ? <span className="border border-ink/15 px-2.5 py-1">{mn ? "Карт" : "Card"}</span> : null}
         {methods.wallet ? <span className="border border-ink/15 px-2.5 py-1">Apple Pay / Google Pay</span> : null}
-        {methods.bank ? <span className="border border-ink/15 px-2.5 py-1">Bank transfer · PayID</span> : null}
+        {methods.bank ? <span className="border border-ink/15 px-2.5 py-1">{mn ? "Банкны шилжүүлэг · PayID" : "Bank transfer · PayID"}</span> : null}
       </div>
 
       {error ? (
@@ -107,7 +109,7 @@ export function PaymentPanel({
             disabled={busy !== null}
             className={cn("btn-dark flex-1", busy && "opacity-60")}
           >
-            {busy === "deposit" ? "Opening secure checkout…" : `Pay ${formatAUD(depositAmount)} deposit`}
+            {busy === "deposit" ? (mn ? "Аюулгүй төлбөрийн цонх нээж байна…" : "Opening secure checkout…") : (mn ? `${formatAUD(depositAmount)} урьдчилгаа төлөх` : `Pay ${formatAUD(depositAmount)} deposit`)}
           </button>
         ) : null}
         <button
@@ -116,12 +118,13 @@ export function PaymentPanel({
           disabled={busy !== null}
           className={cn("btn-outline flex-1", busy && "opacity-60")}
         >
-          {busy === "full" ? "Opening secure checkout…" : "Pay in full"}
+          {busy === "full" ? (mn ? "Аюулгүй төлбөрийн цонх нээж байна…" : "Opening secure checkout…") : (mn ? "Бүрэн төлөх" : "Pay in full")}
         </button>
       </div>
       <p className="mt-4 border-t border-ink/10 pt-3 text-[10px] leading-relaxed text-smoke/70">
-        Payments are processed by Stripe in Australian dollars and verified server-side. A booking is
-        only marked paid after the provider confirms settlement. {methods.bankDetails}
+        {mn
+          ? `Төлбөрийг Stripe-ээр австрали доллараар боловсруулж, сервер талд баталгаажуулна. Үйлчилгээ үзүүлэгч төлбөрийг баталгаажуулсны дараа захиалгыг төлөгдсөн гэж тэмдэглэнэ. ${methods.bankDetails}`
+          : `Payments are processed by Stripe in Australian dollars and verified server-side. A booking is only marked paid after the provider confirms settlement. ${methods.bankDetails}`}
       </p>
     </div>
   );

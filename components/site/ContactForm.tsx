@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { createInquiryAction } from "@/app/actions/admin";
+import { useSiteLocale } from "@/lib/use-site-locale";
 import { cn } from "@/lib/utils";
 
 export function ContactForm({ subjects }: { subjects: string[] }) {
+  const mn = useSiteLocale() === "mn";
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -32,14 +34,15 @@ export function ContactForm({ subjects }: { subjects: string[] }) {
   if (state === "sent") {
     return (
       <div className="border border-ink/12 bg-white/70 p-10 text-center">
-        <p className="eyebrow">Thank you</p>
-        <p className="display mt-4 text-3xl">Your message is with Mara.</p>
+        <p className="eyebrow">{mn ? "Баярлалаа" : "Thank you"}</p>
+        <p className="display mt-4 text-3xl">{mn ? "Таны зурвас Марад хүрлээ." : "Your message is with Mara."}</p>
         <p className="mt-4 text-sm leading-relaxed text-smoke">
-          We answer every enquiry personally, usually within one business day. If it is urgent,
-          WhatsApp is the fastest way to reach us.
+          {mn
+            ? "Бид хүсэлт бүрд биечлэн хариулдаг бөгөөд ихэвчлэн ажлын нэг өдрийн дотор хариу өгнө. Яаралтай бол WhatsApp-аар холбогдох нь хамгийн хурдан."
+            : "We answer every enquiry personally, usually within one business day. If it is urgent, WhatsApp is the fastest way to reach us."}
         </p>
         <button type="button" onClick={() => setState("idle")} className="btn-outline mt-8">
-          Send another message
+          {mn ? "Дахин зурвас илгээх" : "Send another message"}
         </button>
       </div>
     );
@@ -49,7 +52,7 @@ export function ContactForm({ subjects }: { subjects: string[] }) {
     <form onSubmit={submit} className="space-y-5">
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label className="label" htmlFor="contact-name">Your name</label>
+          <label className="label" htmlFor="contact-name">{mn ? "Таны нэр" : "Your name"}</label>
           <input
             id="contact-name"
             required
@@ -72,7 +75,7 @@ export function ContactForm({ subjects }: { subjects: string[] }) {
           />
         </div>
         <div>
-          <label className="label" htmlFor="contact-phone">Phone / WhatsApp</label>
+          <label className="label" htmlFor="contact-phone">{mn ? "Утас / WhatsApp" : "Phone / WhatsApp"}</label>
           <input
             id="contact-phone"
             value={form.phone}
@@ -82,7 +85,7 @@ export function ContactForm({ subjects }: { subjects: string[] }) {
           />
         </div>
         <div>
-          <label className="label" htmlFor="contact-subject">What is this about?</label>
+          <label className="label" htmlFor="contact-subject">{mn ? "Ямар асуудлаар холбогдож байна вэ?" : "What is this about?"}</label>
           <select
             id="contact-subject"
             value={form.subject}
@@ -96,7 +99,7 @@ export function ContactForm({ subjects }: { subjects: string[] }) {
         </div>
       </div>
       <div>
-        <label className="label" htmlFor="contact-message">Tell us about your plans</label>
+        <label className="label" htmlFor="contact-message">{mn ? "Төлөвлөгөөнийхөө талаар бичнэ үү" : "Tell us about your plans"}</label>
         <textarea
           id="contact-message"
           required
@@ -104,7 +107,7 @@ export function ContactForm({ subjects }: { subjects: string[] }) {
           value={form.message}
           onChange={(e) => setForm({ ...form, message: e.target.value })}
           className="field resize-none"
-          placeholder="Dates, location, how many people, anything you already have in mind…"
+          placeholder={mn ? "Огноо, байршил, хүний тоо болон төлөвлөсөн зүйлсээ бичнэ үү…" : "Dates, location, how many people, anything you already have in mind…"}
         />
       </div>
       {error ? (
@@ -112,10 +115,10 @@ export function ContactForm({ subjects }: { subjects: string[] }) {
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="max-w-xs text-[11px] leading-relaxed text-smoke/70">
-          Your details stay with Mara. We never share client information.
+          {mn ? "Таны мэдээллийг Мара хадгална. Бид үйлчлүүлэгчийн мэдээллийг бусдад дамжуулахгүй." : "Your details stay with Mara. We never share client information."}
         </p>
         <button type="submit" disabled={state === "sending"} className={cn("btn-dark", state === "sending" && "opacity-60")}>
-          {state === "sending" ? "Sending…" : "Send message"}
+          {state === "sending" ? (mn ? "Илгээж байна…" : "Sending…") : (mn ? "Зурвас илгээх" : "Send message")}
         </button>
       </div>
     </form>

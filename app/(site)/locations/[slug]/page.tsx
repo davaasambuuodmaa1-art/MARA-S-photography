@@ -9,6 +9,8 @@ import {
   locationStyles,
 } from "@/lib/data";
 import { formatAUD } from "@/lib/utils";
+import { currentSiteLocale } from "@/lib/current-site-locale";
+import { localizeSiteContent } from "@/lib/site-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function LocationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const mn = (await currentSiteLocale()) === "mn";
   const location = await getLocationBySlug(slug);
   if (!location || !location.available) notFound();
 
@@ -32,12 +35,12 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
   const approved = location.permit_status === "approved" && Boolean(location.venue_approved);
 
   const permit = approved
-    ? "Commercial photography approved for this location."
+    ? (mn ? "Энэ байршилд арилжааны зураг авалт хийхийг зөвшөөрсөн." : "Commercial photography approved for this location.")
     : location.permit_status === "not_required"
-      ? "No permit required for small portrait sessions here."
+      ? (mn ? "Энд жижиг хэмжээний хөрөг зураг авалтад зөвшөөрөл шаардлагагүй." : "No permit required for small portrait sessions here.")
       : location.permit_status === "required"
-        ? "A council or venue permit is required. Mara arranges and confirms this before your session."
-        : "Permit requirements are still being confirmed. It is not advertised as approved.";
+        ? (mn ? "Зөвлөл эсвэл талбайн зөвшөөрөл шаардлагатай. Мара зураг авалтаас өмнө үүнийг зохицуулж баталгаажуулна." : "A council or venue permit is required. Mara arranges and confirms this before your session.")
+        : (mn ? "Зөвшөөрлийн шаардлагыг одоогоор шалгаж байна. Зөвшөөрөгдсөн гэж зарлаагүй." : "Permit requirements are still being confirmed. It is not advertised as approved.");
 
   return (
     <>
@@ -54,17 +57,17 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
               href="/locations"
               className="text-[9px] uppercase tracking-[0.24em] text-cream/60 transition-colors hover:text-cream"
             >
-              ← All locations
+              {mn ? "← Бүх байршил" : "← All locations"}
             </Link>
-            <p className="mt-6 text-[9px] uppercase tracking-[0.3em] text-champagne">{location.area}</p>
+            <p className="mt-6 text-[9px] uppercase tracking-[0.3em] text-champagne">{localizeSiteContent(location.area, mn ? "mn" : "en")}</p>
             <h1 className="display mt-3 max-w-3xl text-balance text-[clamp(2.6rem,6vw,5.2rem)] text-cream">
-              {location.name}
+              {localizeSiteContent(location.name, mn ? "mn" : "en")}
             </h1>
-            <p className="mt-5 max-w-xl text-[14px] leading-relaxed text-cream/70">{location.description}</p>
+            <p className="mt-5 max-w-xl text-[14px] leading-relaxed text-cream/70">{localizeSiteContent(location.description, mn ? "mn" : "en")}</p>
             <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-3 text-[10px] uppercase tracking-[0.2em] text-cream/60">
-              <span>{location.travel_fee > 0 ? `+${formatAUD(location.travel_fee)} travel` : "Travel included"}</span>
-              {location.min_spend > 0 ? <span>Min. session {formatAUD(location.min_spend)}</span> : null}
-              <span>{styles.join(" · ")}</span>
+              <span>{location.travel_fee > 0 ? `+${formatAUD(location.travel_fee)} ${mn ? "аяллын зардал" : "travel"}` : (mn ? "Аяллын зардал багтсан" : "Travel included")}</span>
+              {location.min_spend > 0 ? <span>{mn ? "Захиалгын доод дүн" : "Min. session"} {formatAUD(location.min_spend)}</span> : null}
+              <span>{styles.map((style) => localizeSiteContent(style, mn ? "mn" : "en")).join(" · ")}</span>
             </div>
           </Reveal>
         </div>
@@ -92,22 +95,22 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
 
           <aside className="space-y-8">
             <div>
-              <p className="eyebrow">Good to know</p>
+              <p className="eyebrow">{mn ? "Мэдэхэд илүүдэхгүй" : "Good to know"}</p>
               <div className="mt-4 space-y-4 text-[13px] leading-relaxed text-smoke">
                 <div>
-                  <p className="text-[9px] uppercase tracking-[0.2em] text-smoke/60">Getting there</p>
-                  <p className="mt-1">{location.travel_info || "Travel details confirmed with your booking."}</p>
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-smoke/60">{mn ? "Очих зам" : "Getting there"}</p>
+                  <p className="mt-1">{localizeSiteContent(location.travel_info || (mn ? "Аяллын мэдээллийг захиалгатай хамт баталгаажуулна." : "Travel details confirmed with your booking."), mn ? "mn" : "en")}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-[0.2em] text-smoke/60">Permits & access</p>
-                  <p className="mt-1">{location.requirements || "Checked before your session is confirmed."}</p>
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-smoke/60">{mn ? "Зөвшөөрөл ба нэвтрэх нөхцөл" : "Permits & access"}</p>
+                  <p className="mt-1">{localizeSiteContent(location.requirements || (mn ? "Захиалгыг баталгаажуулахаас өмнө шалгана." : "Checked before your session is confirmed."), mn ? "mn" : "en")}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] uppercase tracking-[0.2em] text-smoke/60">Travel fee</p>
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-smoke/60">{mn ? "Аяллын зардал" : "Travel fee"}</p>
                   <p className="mt-1">
                     {location.travel_fee > 0
-                      ? `${formatAUD(location.travel_fee)} added to your quote. ${settings.travelPolicy}`
-                      : "Included in every session within 15 km of the CBD."}
+                      ? (mn ? `${formatAUD(location.travel_fee)} үнийн саналд нэмэгдэнэ. ${localizeSiteContent(settings.travelPolicy, "mn")}` : `${formatAUD(location.travel_fee)} added to your quote. ${settings.travelPolicy}`)
+                      : (mn ? "Хотын төвөөс 15 км-ийн доторх зураг авалтад багтсан." : "Included in every session within 15 km of the CBD.")}
                   </p>
                 </div>
               </div>
@@ -124,16 +127,17 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
             </div>
 
             <div className="border border-ink/12 bg-white/60 p-5">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-smoke">Reserve this location</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-smoke">{mn ? "Энэ байршлыг сонгох" : "Reserve this location"}</p>
               <p className="mt-2 text-[12px] leading-relaxed text-smoke">
-                Locations are never confirmed automatically — Mara reviews each request, checks permits
-                and comes back to you with a confirmed time.
+                {mn
+                  ? "Байршлыг автоматаар баталгаажуулахгүй. Мара хүсэлт бүрийг хянаж, зөвшөөрлийг шалгаад товыг баталгаажуулна."
+                  : "Locations are never confirmed automatically — Mara reviews each request, checks permits and comes back to you with a confirmed time."}
               </p>
               <Link
                 href={`/book?location=${location.slug}${styles[0] ? `&category=${styles[0].toLowerCase()}-photography` : ""}`}
                 className="btn-dark mt-4 w-full"
               >
-                Book at {location.name}
+                {mn ? `${location.name} дээр захиалах` : `Book at ${location.name}`}
               </Link>
               {location.maps_url ? (
                 <a
@@ -142,20 +146,20 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
                   rel="noreferrer"
                   className="mt-3 block text-center text-[9px] uppercase tracking-[0.2em] text-gold link-underline"
                 >
-                  Open in maps →
+                  {mn ? "Газрын зураг нээх →" : "Open in maps →"}
                 </a>
               ) : null}
             </div>
 
             <div className="border border-ink/10 bg-white/40 p-5">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-smoke">Rain policy</p>
-              <p className="mt-2 text-[12px] leading-relaxed text-smoke">{settings.rainPolicy}</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-smoke">{mn ? "Цаг агаарын нөхцөл" : "Rain policy"}</p>
+              <p className="mt-2 text-[12px] leading-relaxed text-smoke">{localizeSiteContent(settings.rainPolicy, mn ? "mn" : "en")}</p>
             </div>
           </aside>
         </div>
 
         <div className="mt-20">
-          <p className="eyebrow">Nearby</p>
+          <p className="eyebrow">{mn ? "Ойролцоох байршлууд" : "Nearby"}</p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {others
               .filter((other) => other.id !== location.id)
@@ -166,14 +170,14 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
                     {(locationImages(other)[0] ?? other.cover_image) ? (
                       <img
                         src={locationImages(other)[0] ?? other.cover_image}
-                        alt={other.name}
+                        alt={localizeSiteContent(other.name, mn ? "mn" : "en")}
                         loading="lazy"
                         className="grade h-full w-full object-cover transition-transform duration-[1200ms] group-hover:scale-105"
                       />
                     ) : null}
                   </div>
-                  <p className="mt-3 font-serif text-lg">{other.name}</p>
-                  <p className="text-[9px] uppercase tracking-[0.18em] text-smoke">{other.area}</p>
+                  <p className="mt-3 font-serif text-lg">{localizeSiteContent(other.name, mn ? "mn" : "en")}</p>
+                  <p className="text-[9px] uppercase tracking-[0.18em] text-smoke">{localizeSiteContent(other.area, mn ? "mn" : "en")}</p>
                 </Link>
               ))}
           </div>

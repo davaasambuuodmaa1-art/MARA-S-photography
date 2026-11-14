@@ -3,6 +3,8 @@ import { Reveal } from "@/components/site/Reveal";
 import { Accordion } from "@/components/site/Accordion";
 import { finalPrice, getPackages, getSiteSettings, packageFeatures } from "@/lib/data";
 import { formatAUD } from "@/lib/utils";
+import { currentSiteLocale } from "@/lib/current-site-locale";
+import { localizeSiteContent } from "@/lib/site-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -12,21 +14,22 @@ export const metadata = {
 };
 
 export default async function PackagesPage() {
-  const [packages, settings] = await Promise.all([getPackages(), getSiteSettings()]);
+  const [packages, settings, locale] = await Promise.all([getPackages(), getSiteSettings(), currentSiteLocale()]);
+  const mn = locale === "mn";
 
   return (
     <>
       <section className="border-b border-ink/10 bg-sand/40 pb-16 pt-36 lg:pb-20 lg:pt-44">
         <div className="mx-auto max-w-[1680px] px-6 sm:px-10 lg:px-16">
           <Reveal>
-            <p className="eyebrow">Sessions & pricing</p>
+            <p className="eyebrow">{mn ? "Зураг авалт ба үнэ" : "Sessions & pricing"}</p>
             <h1 className="display mt-5 max-w-4xl text-balance text-[clamp(3rem,7vw,5.6rem)] text-ink">
-              Time, attention, and a finished body of work
+              {mn ? "Цаг, анхаарал, бүрэн боловсруулсан бүтээл" : "Time, attention, and a finished body of work"}
             </h1>
             <p className="mt-7 max-w-2xl text-[15px] leading-relaxed text-smoke">
-              Every session includes Mara&apos;s direction on the day, professional retouching and a
-              private online gallery. Prices below are complete — no hidden deliverables, no upsell
-              you did not ask for.
+              {mn
+                ? "Сешн бүр зураг авалтын үеийн Марагийн чиглүүлэг, мэргэжлийн засвар болон хувийн онлайн галерейг багтаана. Доорх үнэ бүрэн дүн бөгөөд нууц нэмэлт төлбөр, хүсээгүй нэмэлт үйлчилгээ байхгүй."
+                : "Every session includes Mara&apos;s direction on the day, professional retouching and a private online gallery. Prices below are complete — no hidden deliverables, no upsell you did not ask for."}
             </p>
           </Reveal>
         </div>
@@ -44,20 +47,20 @@ export default async function PackagesPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-[9px] uppercase tracking-[0.28em] text-smoke">
-                          {pkg.duration_hours}h · {pkg.edited_photos ? `${pkg.edited_photos} images` : "Custom scope"}
+                          {pkg.duration_hours}{mn ? " цаг" : "h"} · {pkg.edited_photos ? `${pkg.edited_photos} ${mn ? "зураг" : "images"}` : (mn ? "Тусгай багц" : "Custom scope")}
                         </p>
-                        <h2 className="display mt-3 text-3xl">{pkg.name}</h2>
+                        <h2 className="display mt-3 text-3xl">{localizeSiteContent(pkg.name, locale)}</h2>
                       </div>
                       {pkg.badge ? (
                         <span className="border border-gold/50 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] text-gold">
-                          {pkg.badge}
+                          {localizeSiteContent(pkg.badge, locale)}
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-3 font-serif text-lg italic text-smoke">{pkg.tagline}</p>
+                    <p className="mt-3 font-serif text-lg italic text-smoke">{localizeSiteContent(pkg.tagline, locale)}</p>
                     <div className="mt-7 flex flex-wrap items-end gap-3">
                       {pkg.price === 0 ? (
-                        <span className="display text-3xl">Quoted within 48h</span>
+                        <span className="display text-3xl">{mn ? "48 цагт үнийн санал өгнө" : "Quoted within 48h"}</span>
                       ) : (
                         <>
                           <span className="display text-4xl">{formatAUD(price)}</span>
@@ -65,7 +68,7 @@ export default async function PackagesPage() {
                             <span className="pb-1 text-sm text-smoke/60 line-through">{formatAUD(pkg.price)}</span>
                           ) : null}
                           <span className="pb-1 text-[10px] uppercase tracking-[0.18em] text-smoke">
-                            · {pkg.deposit_percent}% deposit
+                            · {mn ? `${pkg.deposit_percent}% урьдчилгаа` : `${pkg.deposit_percent}% deposit`}
                           </span>
                         </>
                       )}
@@ -74,17 +77,17 @@ export default async function PackagesPage() {
                       {features.map((feature) => (
                         <li key={feature} className="flex gap-3">
                           <span className="text-gold">—</span>
-                          {feature}
+                          {localizeSiteContent(feature, locale)}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div className="mt-9 flex flex-wrap gap-3">
                     <Link href={`/book?package=${pkg.slug}`} className="btn-dark flex-1 text-center">
-                      Book {pkg.name}
+                      {mn ? `${localizeSiteContent(pkg.name, locale)} захиалах` : `Book ${pkg.name}`}
                     </Link>
                     <Link href="/contact" className="btn-outline">
-                      Ask a question
+                      {mn ? "Асуулт асуух" : "Ask a question"}
                     </Link>
                   </div>
                 </div>
@@ -96,16 +99,22 @@ export default async function PackagesPage() {
         <Reveal className="mt-16 grid gap-8 border-t border-ink/10 pt-12 sm:grid-cols-3">
           {[
             {
-              title: "The deposit",
-              body: `A ${settings.depositPercent}% deposit reserves your date. The balance is due seven days before the session, and instalments can be arranged for larger commissions.`,
+              title: mn ? "Урьдчилгаа төлбөр" : "The deposit",
+              body: mn
+                ? `${settings.depositPercent}% урьдчилгаа төлснөөр товыг тань хадгална. Үлдэгдлийг зураг авалтаас долоо хоногийн өмнө төлөх бөгөөд томоохон захиалгад хэсэгчлэн төлөх боломжтой.`
+                : `A ${settings.depositPercent}% deposit reserves your date. The balance is due seven days before the session, and instalments can be arranged for larger commissions.`,
             },
             {
-              title: "Travel",
-              body: "Greater Sydney travel is included. The Blue Mountains, Hunter Valley and international locations are quoted at cost, always transparently.",
+              title: mn ? "Аялал" : "Travel",
+              body: mn
+                ? "Сиднейн их бүсийн аялал багтсан. Блю Маунтинс, Хантер Вэлли болон олон улсын байршлын зардлыг ил тод тооцно."
+                : "Greater Sydney travel is included. The Blue Mountains, Hunter Valley and international locations are quoted at cost, always transparently.",
             },
             {
-              title: "Rescheduling",
-              body: "Life happens. You may move your session once at no cost up to 72 hours before your booking, subject to availability.",
+              title: mn ? "Цаг өөрчлөх" : "Rescheduling",
+              body: mn
+                ? "Гэнэтийн зүйл тохиолдож болно. Боломжтой эсэхээс хамааран захиалгын цагаа 72-оос доошгүй цагийн өмнө нэг удаа үнэ төлбөргүй өөрчилж болно."
+                : "Life happens. You may move your session once at no cost up to 72 hours before your booking, subject to availability.",
             },
           ].map((item) => (
             <div key={item.title}>
@@ -116,9 +125,12 @@ export default async function PackagesPage() {
         </Reveal>
 
         <Reveal className="mt-20">
-          <h2 className="display text-3xl">Packages, answered</h2>
+          <h2 className="display text-3xl">{mn ? "Багцын талаарх асуулт, хариулт" : "Packages, answered"}</h2>
           <div className="mt-8">
-            <Accordion items={settings.faqs.slice(0, 5)} />
+            <Accordion items={settings.faqs.slice(0, 5).map((faq) => ({
+              question: localizeSiteContent(faq.question, locale),
+              answer: localizeSiteContent(faq.answer, locale),
+            }))} />
           </div>
         </Reveal>
       </section>

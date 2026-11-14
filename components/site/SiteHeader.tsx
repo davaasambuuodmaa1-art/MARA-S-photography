@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { localizeSiteContent, SITE_LOCALE_COOKIE, SITE_TEXT, type SiteLocale } from "@/lib/site-locale";
 import { cn } from "@/lib/utils";
 
 interface NavCategory {
@@ -11,32 +12,39 @@ interface NavCategory {
   image_count: number;
 }
 
-const LINKS = [
-  { href: "/work", label: "Work" },
-  { href: "/packages", label: "Sessions" },
-  { href: "/locations", label: "Locations" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-];
-
 export function SiteHeader({
   categories,
   brandName,
   logoImage,
   announcement,
   user,
+  locale,
 }: {
   categories: NavCategory[];
   brandName: string;
   logoImage: string | null;
   announcement?: string;
   user: { name: string; role: string } | null;
+  locale: SiteLocale;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const overHero = pathname === "/";
   const [scrolled, setScrolled] = useState(false);
   const [workOpen, setWorkOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [currentLocale, setCurrentLocale] = useState(locale);
+
+  const links = useMemo(
+    () => [
+      { href: "/work", label: SITE_TEXT[currentLocale].nav.work },
+      { href: "/packages", label: SITE_TEXT[currentLocale].nav.sessions },
+      { href: "/locations", label: SITE_TEXT[currentLocale].nav.locations },
+      { href: "/about", label: SITE_TEXT[currentLocale].nav.about },
+      { href: "/contact", label: SITE_TEXT[currentLocale].nav.contact },
+    ],
+    [currentLocale],
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -57,11 +65,25 @@ export function SiteHeader({
     };
   }, [menuOpen]);
 
-  // The editorial layout sits on ivory, so the header keeps its cream treatment
-  // at all times and simply gains a hairline once the page moves.
+  useEffect(() => {
+    document.documentElement.lang = currentLocale;
+    document.cookie = `${SITE_LOCALE_COOKIE}=${currentLocale}; path=/; max-age=31536000; SameSite=Lax`;
+    window.dispatchEvent(new Event("site-locale-change"));
+  }, [currentLocale]);
+
+  const switchLocale = () => {
+    const nextLocale = currentLocale === "en" ? "mn" : "en";
+    document.cookie = `${SITE_LOCALE_COOKIE}=${nextLocale}; path=/; max-age=31536000; SameSite=Lax`;
+    document.documentElement.lang = nextLocale;
+    window.dispatchEvent(new Event("site-locale-change"));
+    setCurrentLocale(nextLocale);
+    router.refresh();
+  };
+
   const solid = true;
   const dark = false;
   const words = brandName.replace("Photography", "").trim();
+  const t = SITE_TEXT[currentLocale];
 
   return (
     <>
@@ -121,12 +143,12 @@ export function SiteHeader({
                 pathname.startsWith("/work") && (dark ? "text-cream" : "text-ink"),
               )}
             >
-              Work
+              {t.nav.work}
               <svg width="9" height="6" viewBox="0 0 9 6" fill="none" aria-hidden>
                 <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" strokeWidth="1" />
               </svg>
             </button>
-            {LINKS.slice(1).map((link) => (
+            {links.slice(1).map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -141,9 +163,22 @@ export function SiteHeader({
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-4">
+            <button
+              type="button"
+              onClick={switchLocale}
+              className={cn(
+                "rounded-full border px-2.5 py-1.5 text-[9px] uppercase tracking-[0.24em] transition-colors",
+                dark
+                  ? "border-cream/30 text-cream/80 hover:border-cream hover:text-cream"
+                  : "border-ink/15 text-ink/70 hover:border-ink/50 hover:text-ink",
+              )}
+              aria-label={currentLocale === "en" ? "Switch to Mongolian" : "Switch to English"}
+            >
+              {currentLocale === "en" ? "MN" : "EN"}
+            </button>
             <Link
-              href={user ? "/account" : "/account"}
-              aria-label="Your account"
+              href="/account"
+              aria-label={t.nav.account}
               className={cn(
                 "hidden h-9 w-9 items-center justify-center rounded-full border transition-colors sm:flex",
                 dark
@@ -165,12 +200,12 @@ export function SiteHeader({
                   : "bg-ink text-cream hover:bg-burgundy",
               )}
             >
-              Book a session
+              {t.nav.book}
             </Link>
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              aria-label="Menu"
+              aria-label={t.nav.menu}
               className={cn(
                 "flex h-10 w-10 flex-col items-center justify-center gap-1.5 lg:hidden",
                 dark ? "text-cream" : "text-ink",
@@ -192,7 +227,6 @@ export function SiteHeader({
           </div>
         </div>
 
-        {/* Mega menu */}
         <div
           className={cn(
             "absolute inset-x-0 top-full hidden overflow-hidden border-t border-ink/10 bg-cream transition-all duration-500 lg:block",
@@ -201,15 +235,17 @@ export function SiteHeader({
         >
           <div className="mx-auto grid max-w-[1680px] gap-10 px-12 py-10 md:grid-cols-[1.1fr_2fr]">
             <div>
-              <p className="eyebrow">The collection</p>
+              <p className="eyebrow">{t.home.menuTitle}</p>
               <p className="display mt-4 text-3xl text-ink">
-                Twenty-one ways <br /> of seeing.
+                {t.home.collectionsIntro.split(" ").slice(0, 2).join(" ")}
+                <br />
+                {t.home.collectionsIntro.split(" ").slice(2).join(" ")}
               </p>
               <Link
                 href="/work"
                 className="mt-6 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.24em] text-ink link-underline"
               >
-                View all work
+                {t.nav.viewAllWork}
                 <span aria-hidden>→</span>
               </Link>
             </div>
@@ -220,7 +256,7 @@ export function SiteHeader({
                   href={`/work/${category.slug}`}
                   className="group flex items-baseline justify-between border-b border-ink/5 py-2.5 text-[13px] text-ink/75 transition-colors hover:text-ink"
                 >
-                  <span className="font-serif text-[17px] group-hover:italic">{category.name}</span>
+                  <span className="font-serif text-[17px] group-hover:italic">{localizeSiteContent(category.name, currentLocale)}</span>
                   <span className="text-[10px] tracking-[0.16em] text-smoke/70">
                     {String(category.image_count).padStart(2, "0")}
                   </span>
@@ -231,7 +267,6 @@ export function SiteHeader({
         </div>
       </header>
 
-      {/* Mobile menu */}
       <div
         className={cn(
           "fixed inset-0 z-40 bg-ink text-cream transition-all duration-500 lg:hidden",
@@ -239,9 +274,9 @@ export function SiteHeader({
         )}
       >
         <div className="flex h-full flex-col overflow-y-auto px-7 pb-10 pt-28">
-          <p className="eyebrow">Menu</p>
+          <p className="eyebrow">{t.nav.menu}</p>
           <nav className="mt-5 flex flex-col">
-            {LINKS.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -251,22 +286,22 @@ export function SiteHeader({
               </Link>
             ))}
             <Link href="/book" className="border-b border-cream/10 py-4 font-serif text-3xl">
-              Book a session
+              {t.nav.book}
             </Link>
             <Link href="/account" className="border-b border-cream/10 py-4 font-serif text-3xl">
-              {user ? "My bookings" : "Sign in"}
+              {user ? t.nav.myBookings : t.nav.signIn}
             </Link>
           </nav>
-          <p className="eyebrow mt-10">Collections</p>
+          <p className="eyebrow mt-10">{t.nav.collections}</p>
           <div className="mt-4 grid grid-cols-2 gap-y-2 text-sm text-cream/70">
             {categories.slice(0, 12).map((c) => (
               <Link key={c.slug} href={`/work/${c.slug}`} className="py-1">
-                {c.name.replace(" Photography", "")}
+                {localizeSiteContent(c.name, currentLocale).replace(" Photography", "").replace("гэрэл зураг", "")}
               </Link>
             ))}
           </div>
           <Link href="/work" className="mt-6 text-[10px] uppercase tracking-[0.24em] text-champagne">
-            View all work →
+            {t.nav.viewAllWork} →
           </Link>
         </div>
       </div>

@@ -1,6 +1,8 @@
 import { Reveal } from "@/components/site/Reveal";
 import { getSiteSettings } from "@/lib/data";
 import { sizedImage } from "@/lib/img";
+import { currentSiteLocale } from "@/lib/current-site-locale";
+import { localizeSiteContent } from "@/lib/site-locale";
 
 declare global {
   namespace JSX {
@@ -41,22 +43,23 @@ const PROCESS = [
 ];
 
 export default async function AboutPage() {
-  const settings = await getSiteSettings();
+  const [settings, locale] = await Promise.all([getSiteSettings(), currentSiteLocale()]);
+  const mn = locale === "mn";
 
   return (
     <>
       <section className="relative h-[70vh] min-h-[460px] overflow-hidden bg-ink">
         <img
           src={sizedImage(settings.heroImage2, 2000)}
-          alt="A wedding photographed on location in Sydney"
+          alt={mn ? "Сиднейд байршил дээр авсан хуримын зураг" : "A wedding photographed on location in Sydney"}
           className="absolute inset-0 h-full w-full animate-kenburns object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-ink/50" />
         <div className="relative z-10 mx-auto flex h-full max-w-[1680px] flex-col justify-end px-6 pb-14 sm:px-10 lg:px-16">
           <Reveal>
-            <p className="eyebrow text-champagne/90">The photographer</p>
+            <p className="eyebrow text-champagne/90">{mn ? "Зураглаач" : "The photographer"}</p>
             <h1 className="display mt-5 max-w-3xl text-balance text-[clamp(2.8rem,6vw,5rem)] text-cream">
-              Founded on patience, not trends
+              {mn ? "Түр зуурын чиг хандлага бус, тэвчээр дээр суурилсан" : "Founded on patience, not trends"}
             </h1>
           </Reveal>
         </div>
@@ -66,15 +69,15 @@ export default async function AboutPage() {
         <div className="grid gap-14 lg:grid-cols-[1.2fr_1fr] lg:gap-24">
           <Reveal>
             <h2 className="display text-balance text-[clamp(2rem,3.8vw,3rem)] text-ink">
-              {settings.aboutTitle}
+              {localizeSiteContent(settings.aboutTitle, locale)}
             </h2>
-            {settings.aboutBody.split("\n\n").map((paragraph) => (
+            {localizeSiteContent(settings.aboutBody, locale).split("\n\n").map((paragraph) => (
               <p key={paragraph.slice(0, 20)} className="mt-6 text-[15px] leading-[1.85] text-smoke">
                 {paragraph}
               </p>
             ))}
             {settings.founderVisible
-              ? settings.founderBio
+              ? localizeSiteContent(settings.founderBio, locale)
                   .split("\n\n")
                   .filter(Boolean)
                   .map((paragraph, index) => (
@@ -84,7 +87,7 @@ export default async function AboutPage() {
                   ))
               : null}
             {settings.founderVisible
-              ? settings.founderExperience
+              ? localizeSiteContent(settings.founderExperience, locale)
                   .split("\n\n")
                   .filter(Boolean)
                   .map((paragraph, index) => (
@@ -99,7 +102,7 @@ export default async function AboutPage() {
                   <div key={stat.label}>
                     <p className="display text-3xl">{stat.value}</p>
                     <p className="mt-1 text-[9px] uppercase leading-relaxed tracking-[0.18em] text-smoke">
-                      {stat.label}
+                      {localizeSiteContent(stat.label, locale)}
                     </p>
                   </div>
                 ))}
@@ -110,7 +113,7 @@ export default async function AboutPage() {
             <div className="aspect-[4/5] overflow-hidden">
               <img
                 src={sizedImage(settings.founderPortrait || "/images/founder-about-portrait.png", 1200)}
-                alt={settings.founderName || "Founder portrait"}
+                alt={settings.founderName || (mn ? "Үүсгэн байгуулагчийн хөрөг" : "Founder portrait")}
                 className="h-full w-full object-cover"
                 loading="lazy"
               />
@@ -118,10 +121,10 @@ export default async function AboutPage() {
             {settings.founderVisible ? (
               <div className="mt-4 border-l-2 border-champagne pl-4">
                 <p className="font-serif text-lg italic text-ink">
-                  {settings.founderIntro || "“Photography is mostly listening.”"}
+                  {localizeSiteContent(settings.founderIntro || "“Photography is mostly listening.”", locale)}
                 </p>
                 <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-smoke">
-                  {settings.founderName || "Founder"}, {settings.founderRole}
+                  {settings.founderName || (mn ? "Үүсгэн байгуулагч" : "Founder")}, {localizeSiteContent(settings.founderRole, locale)}
                 </p>
               </div>
             ) : null}
@@ -132,17 +135,17 @@ export default async function AboutPage() {
       <section className="bg-ink py-20 text-cream lg:py-28">
         <div className="mx-auto max-w-[1680px] px-6 sm:px-10 lg:px-16">
           <Reveal>
-            <p className="eyebrow text-champagne/80">How we work</p>
+            <p className="eyebrow text-champagne/80">{mn ? "Бидний ажиллах арга" : "How we work"}</p>
             <h2 className="display mt-4 max-w-2xl text-[clamp(2rem,4vw,3rem)]">
-              A quiet, four-part process
+              {mn ? "Тайван, дөрвөн үе шаттай үйл явц" : "A quiet, four-part process"}
             </h2>
           </Reveal>
           <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             {PROCESS.map((item, i) => (
               <Reveal key={item.step} delay={i * 80}>
                 <p className="font-serif text-5xl text-champagne/40">{item.step}</p>
-                <h3 className="mt-4 font-serif text-2xl">{item.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-cream/60">{item.body}</p>
+                <h3 className="mt-4 font-serif text-2xl">{localizeSiteContent(item.title, locale)}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-cream/60">{localizeSiteContent(item.body, locale)}</p>
               </Reveal>
             ))}
           </div>
@@ -153,16 +156,22 @@ export default async function AboutPage() {
         <div className="grid gap-10 sm:grid-cols-3">
           {[
             {
-              title: "Equipment",
-              body: "Professional camera bodies and prime lenses, with lighting brought when a location needs it. Files are backed up before leaving a venue.",
+              title: mn ? "Тоног төхөөрөмж" : "Equipment",
+              body: mn
+                ? "Мэргэжлийн камер, дуран ашиглаж, шаардлагатай байршилд гэрэлтүүлэг авчирна. Байршлаас явахаас өмнө файлуудыг нөөцөлнө."
+                : "Professional camera bodies and prime lenses, with lighting brought when a location needs it. Files are backed up before leaving a venue.",
             },
             {
-              title: "Days & hours",
-              body: "There is no studio to visit — Mara comes to you. Sessions run seven days around light, with golden-hour slots scheduled to the sunset and the exact window confirmed before the day.",
+              title: mn ? "Өдөр ба цаг" : "Days & hours",
+              body: mn
+                ? "Зочлох студи байхгүй — Мара таны сонгосон газар очно. Гэрлийн нөхцөлд тааруулан долоо хоногийн бүх өдөр зураг авна. Алтан цагийн зураг авалтыг нар жаргах үеэр төлөвлөж, товыг урьдчилан баталгаажуулна."
+                : "There is no studio to visit — Mara comes to you. Sessions run seven days around light, with golden-hour slots scheduled to the sunset and the exact window confirmed before the day.",
             },
             {
-              title: "Where we work",
-              body: "Based in Sydney, NSW. Sessions take place on location anywhere across Sydney; further travel is quoted individually.",
+              title: mn ? "Байршил" : "Where we work",
+              body: mn
+                ? "Шинэ Өмнөд Уэльсийн Сидней хотод байрладаг. Сидней даяар таны сонгосон байршилд зураг авна; холын аяллын үнийг тусад нь тооцно."
+                : "Based in Sydney, NSW. Sessions take place on location anywhere across Sydney; further travel is quoted individually.",
             },
           ].map((item, i) => (
             <Reveal key={item.title} delay={i * 70}>
@@ -174,11 +183,11 @@ export default async function AboutPage() {
 
         <Reveal className="mt-20 flex flex-col items-center gap-6 border-t border-ink/10 pt-14 text-center">
           <h2 className="display max-w-xl text-balance text-3xl sm:text-4xl">
-            Come and make something worth keeping.
+            {mn ? "Хадгалж үлдэх үнэ цэнтэй дурсамж бүтээцгээе." : "Come and make something worth keeping."}
           </h2>
           <div className="flex flex-wrap justify-center gap-3">
-            <a href="/book" className="btn-dark">Book a session</a>
-            <a href="/work" className="btn-outline">See the work</a>
+            <a href="/book" className="btn-dark">{mn ? "Зураг авуулах" : "Book a session"}</a>
+            <a href="/work" className="btn-outline">{mn ? "Бүтээлүүд үзэх" : "See the work"}</a>
           </div>
         </Reveal>
       </section>

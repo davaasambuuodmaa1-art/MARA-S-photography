@@ -5,6 +5,8 @@ import { ReschedulePanel } from "@/components/site/ReschedulePanel";
 import { Reveal } from "@/components/site/Reveal";
 import { getBookingByCode, getPaymentsForBooking, getSiteSettings } from "@/lib/data";
 import { BOOKING_STATUS, PAYMENT_STATUS_LABEL, cn, formatDate, formatDateTime, formatAUD } from "@/lib/utils";
+import { currentSiteLocale } from "@/lib/current-site-locale";
+import { localizeStatus } from "@/lib/site-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,7 @@ export default async function BookingPage({
 }) {
   const { code } = await params;
   const { paid } = await searchParams;
+  const mn = (await currentSiteLocale()) === "mn";
   const booking = await getBookingByCode(code);
   if (!booking) notFound();
   const [payments, settings] = await Promise.all([getPaymentsForBooking(booking.id), getSiteSettings()]);
@@ -59,30 +62,31 @@ export default async function BookingPage({
     <section className="mx-auto max-w-[1120px] px-6 pb-24 pt-32 sm:px-10 lg:pt-40">
       {paid ? (
         <Reveal className="mb-8 border border-champagne/40 bg-champagne/10 px-5 py-4 text-sm text-ink">
-          Thank you — if you have just completed a payment, it can take a few seconds to appear below.
-          Refresh if it has not updated.
+          {mn
+            ? "Баярлалаа. Төлбөрөө дөнгөж төлсөн бол доор харагдахад хэдэн секунд шаардлагатай. Шинэчлэгдэхгүй бол хуудсыг дахин ачаална уу."
+            : "Thank you — if you have just completed a payment, it can take a few seconds to appear below. Refresh if it has not updated."}
         </Reveal>
       ) : null}
 
       <Reveal className="flex flex-wrap items-start justify-between gap-6">
         <div>
-          <p className="eyebrow">Booking {booking.code}</p>
+          <p className="eyebrow">{mn ? `Захиалга ${booking.code}` : `Booking ${booking.code}`}</p>
           <h1 className="display mt-3 text-balance text-[clamp(2.4rem,5vw,3.8rem)] text-ink">
-            {booking.category_name ?? "Photography session"}
+            {booking.category_name ?? (mn ? "Зураг авалт" : "Photography session")}
           </h1>
           <p className="mt-3 text-sm text-smoke">
-            {booking.package_name} · {formatDate(booking.date)} at {booking.time_slot}
+            {booking.package_name} · {formatDate(booking.date)} {mn ? "цагт" : "at"} {booking.time_slot}
           </p>
         </div>
         <span className={cn("border px-4 py-2 text-[10px] uppercase tracking-[0.18em]", statusMeta.className)}>
-          {statusMeta.label}
+          {localizeStatus(statusMeta.label, mn ? "mn" : "en")}
         </span>
       </Reveal>
 
       <div className="mt-12 grid gap-10 lg:grid-cols-[1.35fr_1fr]">
         <div className="space-y-10">
           <Reveal className="border border-ink/12 bg-white/60 p-7">
-            <p className="eyebrow">Progress</p>
+            <p className="eyebrow">{mn ? "Явц" : "Progress"}</p>
             <ol className="mt-6 space-y-5">
               {TIMELINE.map((item, index) => {
                 const reached = !closed && index <= stageIndex;
@@ -97,15 +101,24 @@ export default async function BookingPage({
                       {reached ? "✓" : index + 1}
                     </span>
                     <div>
-                      <p className={cn("text-sm", reached ? "text-ink" : "text-smoke/60")}>{item.label}</p>
+                      <p className={cn("text-sm", reached ? "text-ink" : "text-smoke/60")}>
+                        {mn
+                          ? ({
+                              pending: "Хүсэлт хүлээн авсан",
+                              approved: "Өдөр баталгаажсан",
+                              paid: "Зураг авалт баталгаажсан",
+                              completed: "Галерей хүргэгдсэн",
+                            }[item.key] ?? item.label)
+                          : item.label}
+                      </p>
                       {index === 0 ? (
                         <p className="mt-1 text-[11px] text-smoke/70">
-                          Submitted {formatDateTime(booking.created_at)}
+                          {mn ? "Илгээсэн:" : "Submitted"} {formatDateTime(booking.created_at)}
                         </p>
                       ) : null}
                       {item.key === "paid" && booking.payment_status !== "unpaid" ? (
                         <p className="mt-1 text-[11px] text-smoke/70">
-                          {PAYMENT_STATUS_LABEL[booking.payment_status]}
+                          {localizeStatus(PAYMENT_STATUS_LABEL[booking.payment_status], mn ? "mn" : "en")}
                         </p>
                       ) : null}
                     </div>
@@ -115,29 +128,29 @@ export default async function BookingPage({
             </ol>
             {closed ? (
               <p className="mt-5 border border-ink/10 bg-sand/60 px-4 py-3 text-xs text-smoke">
-                This booking was {booking.status}. You are welcome to start a new request at any time.
+                {mn ? `Энэ захиалга ${booking.status === "cancelled" ? "цуцлагдсан" : "татгалзсан"}. Та хүссэн үедээ шинэ хүсэлт илгээж болно.` : `This booking was ${booking.status}. You are welcome to start a new request at any time.`}
               </p>
             ) : null}
           </Reveal>
 
           <Reveal delay={80}>
-            <p className="eyebrow">Session details</p>
+            <p className="eyebrow">{mn ? "Зураг авалтын мэдээлэл" : "Session details"}</p>
             <dl className="mt-4 divide-y divide-ink/10 border-y border-ink/10 text-sm">
               {[
-                ["Collection", booking.category_name ?? "—"],
-                ["Package", booking.package_name ?? "—"],
+                [mn ? "Цуглуулга" : "Collection", booking.category_name ?? "—"],
+                [mn ? "Багц" : "Package", booking.package_name ?? "—"],
                 ...extrasLines.map((line) => [line.label, formatAUD(line.amount)] as [string, string]),
                 ...(booking.discount_code
-                  ? ([["Promo code", `${booking.discount_code} (−${formatAUD(booking.discount_amount)})`]] as [string, string][])
+                  ? ([[mn ? "Урамшууллын код" : "Promo code", `${booking.discount_code} (−${formatAUD(booking.discount_amount)})`]] as [string, string][])
                   : []),
-                ["Date", formatDate(booking.date)],
-                ["Time", booking.time_slot],
-                ["People", String(booking.people)],
-                ["Location", booking.location || "To be confirmed"],
-                ["Name", booking.customer_name],
-                ["Email", booking.email],
-                ["Phone", booking.phone],
-                ["Notes", booking.notes || "—"],
+                [mn ? "Огноо" : "Date", formatDate(booking.date)],
+                [mn ? "Цаг" : "Time", booking.time_slot],
+                [mn ? "Хүний тоо" : "People", String(booking.people)],
+                [mn ? "Байршил" : "Location", booking.location || (mn ? "Баталгаажуулна" : "To be confirmed")],
+                [mn ? "Нэр" : "Name", booking.customer_name],
+                [mn ? "Имэйл" : "Email", booking.email],
+                [mn ? "Утас" : "Phone", booking.phone],
+                [mn ? "Тэмдэглэл" : "Notes", booking.notes || "—"],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-6 py-3">
                   <dt className="shrink-0 text-smoke">{label}</dt>
@@ -149,7 +162,7 @@ export default async function BookingPage({
 
           {references.length ? (
             <Reveal delay={100}>
-              <p className="eyebrow">Your references</p>
+              <p className="eyebrow">{mn ? "Таны жишээ зургууд" : "Your references"}</p>
               <div className="mt-4 flex flex-wrap gap-3">
                 {references.map((url) => (
                   <a key={url} href={url} target="_blank" rel="noreferrer" className="block h-24 w-24 overflow-hidden">
@@ -162,13 +175,13 @@ export default async function BookingPage({
 
           {payments.length ? (
             <Reveal delay={120}>
-              <p className="eyebrow">Transactions</p>
+              <p className="eyebrow">{mn ? "Гүйлгээнүүд" : "Transactions"}</p>
               <div className="mt-4 divide-y divide-ink/10 border-y border-ink/10 text-sm">
                 {payments.map((payment) => (
                   <div key={payment.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                     <div>
                       <p className="text-ink">
-                        {payment.kind === "deposit" ? "Deposit" : "Full payment"} ·{" "}
+                        {payment.kind === "deposit" ? (mn ? "Урьдчилгаа" : "Deposit") : (mn ? "Бүрэн төлбөр" : "Full payment")} ·{" "}
                         {formatAUD(payment.gross_amount)}
                       </p>
                       <p className="text-[11px] text-smoke">
@@ -185,7 +198,7 @@ export default async function BookingPage({
                             : "border-ink/15 text-smoke",
                       )}
                     >
-                      {payment.status}
+                      {localizeStatus(payment.status, mn ? "mn" : "en")}
                     </span>
                   </div>
                 ))}
@@ -217,9 +230,9 @@ export default async function BookingPage({
             whatsapp={settings.whatsapp}
           />
           <div className="border border-ink/12 bg-white/50 p-6 text-sm">
-            <p className="eyebrow">Questions?</p>
+            <p className="eyebrow">{mn ? "Асуух зүйл байна уу?" : "Questions?"}</p>
             <p className="mt-3 text-xs leading-relaxed text-smoke">
-              Reply to your confirmation email or message Mara directly — she plans every session herself.
+              {mn ? "Баталгаажуулах имэйлд хариу бичих эсвэл Марад шууд зурвас илгээнэ үү. Тэр зураг авалт бүрийг өөрөө төлөвлөдөг." : "Reply to your confirmation email or message Mara directly — she plans every session herself."}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noreferrer" className="btn-outline py-2.5 text-[9px]">
@@ -231,7 +244,7 @@ export default async function BookingPage({
             </div>
           </div>
           <Link href="/account" className="block text-center text-[10px] uppercase tracking-[0.22em] text-smoke link-underline">
-            All my bookings
+            {mn ? "Миний бүх захиалга" : "All my bookings"}
           </Link>
         </div>
       </div>

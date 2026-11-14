@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { sizedImage } from "@/lib/img";
 import { cn } from "@/lib/utils";
+import { localizeSiteContent } from "@/lib/site-locale";
+import { useSiteLocale } from "@/lib/use-site-locale";
 
 interface WorkCategory {
   id: string;
@@ -15,6 +17,7 @@ interface WorkCategory {
 }
 
 export function WorkGrid({ categories }: { categories: WorkCategory[] }) {
+  const mn = useSiteLocale() === "mn";
   const [query, setQuery] = useState("");
   const [active, setActive] = useState("all");
 
@@ -24,15 +27,22 @@ export function WorkGrid({ categories }: { categories: WorkCategory[] }) {
       const matchesQuery =
         !term ||
         c.name.toLowerCase().includes(term) ||
-        c.description.toLowerCase().includes(term);
+        localizeSiteContent(c.name, "mn").toLowerCase().includes(term) ||
+        c.description.toLowerCase().includes(term) ||
+        localizeSiteContent(c.description, "mn").toLowerCase().includes(term);
       const matchesActive = active === "all" || c.slug === active;
       return matchesQuery && matchesActive;
     });
   }, [categories, query, active]);
 
   const chips = [
-    { slug: "all", label: "All collections" },
-    ...categories.slice(0, 8).map((c) => ({ slug: c.slug, label: c.name.replace(" Photography", "") })),
+    { slug: "all", label: mn ? "Бүх цуглуулга" : "All collections" },
+    ...categories.slice(0, 8).map((c) => ({
+      slug: c.slug,
+      label: mn
+        ? localizeSiteContent(c.name, "mn").replace(" гэрэл зураг", "")
+        : c.name.replace(" Photography", ""),
+    })),
   ];
 
   return (
@@ -55,8 +65,8 @@ export function WorkGrid({ categories }: { categories: WorkCategory[] }) {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search collections"
-              aria-label="Search collections"
+              placeholder={mn ? "Цуглуулга хайх" : "Search collections"}
+              aria-label={mn ? "Цуглуулга хайх" : "Search collections"}
               className="field py-2.5 pl-9 text-xs"
             />
             <svg
@@ -76,8 +86,8 @@ export function WorkGrid({ categories }: { categories: WorkCategory[] }) {
 
       {filtered.length === 0 ? (
         <div className="border border-ink/10 bg-white/60 px-8 py-20 text-center">
-          <p className="font-serif text-2xl text-ink">Nothing matches that search.</p>
-          <p className="mt-3 text-sm text-smoke">Try another collection name, or browse everything.</p>
+          <p className="font-serif text-2xl text-ink">{mn ? "Хайлтад тохирох зүйл олдсонгүй." : "Nothing matches that search."}</p>
+          <p className="mt-3 text-sm text-smoke">{mn ? "Өөр цуглуулгын нэрээр хайх эсвэл бүгдийг үзнэ үү." : "Try another collection name, or browse everything."}</p>
           <button
             type="button"
             onClick={() => {
@@ -86,7 +96,7 @@ export function WorkGrid({ categories }: { categories: WorkCategory[] }) {
             }}
             className="mt-6 text-[10px] uppercase tracking-[0.24em] text-ink link-underline"
           >
-            Reset filters
+            {mn ? "Шүүлтүүр арилгах" : "Reset filters"}
           </button>
         </div>
       ) : (
@@ -109,11 +119,11 @@ export function WorkGrid({ categories }: { categories: WorkCategory[] }) {
               <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/15 to-transparent opacity-90" />
               <div className="absolute inset-x-0 bottom-0 p-6">
                 <p className="text-[9px] uppercase tracking-[0.28em] text-cream/55">
-                  {String(category.image_count).padStart(2, "0")} frames
+                  {String(category.image_count).padStart(2, "0")} {mn ? "зураг" : "frames"}
                 </p>
-                <h2 className="mt-2 font-serif text-2xl text-cream">{category.name}</h2>
+                <h2 className="mt-2 font-serif text-2xl text-cream">{localizeSiteContent(category.name, mn ? "mn" : "en")}</h2>
                 <p className="mt-2 max-h-0 overflow-hidden text-xs leading-relaxed text-cream/65 transition-all duration-500 group-hover:max-h-24">
-                  {category.description}
+                  {localizeSiteContent(category.description, mn ? "mn" : "en")}
                 </p>
               </div>
               <span className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full border border-cream/40 text-cream opacity-0 transition-all duration-500 group-hover:opacity-100">

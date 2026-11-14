@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { requestRescheduleAction } from "@/app/actions/bookings";
+import { useSiteLocale } from "@/lib/use-site-locale";
+import { localizeSiteContent } from "@/lib/site-locale";
 
 export function ReschedulePanel({
   code,
@@ -18,6 +20,7 @@ export function ReschedulePanel({
   rainPolicy: string;
   whatsapp: string;
 }) {
+  const mn = useSiteLocale() === "mn";
   const [open, setOpen] = useState(false);
   const [preferredDate, setPreferredDate] = useState(date);
   const [preferredTime, setPreferredTime] = useState(time);
@@ -40,15 +43,15 @@ export function ReschedulePanel({
     });
     setBusy(false);
     if (result.ok) {
-      setDone("Request sent. Mara will confirm the new time with you.");
+      setDone(mn ? "Хүсэлт илгээгдлээ. Мара шинэ цагийг тантай баталгаажуулна." : "Request sent. Mara will confirm the new time with you.");
       setOpen(false);
     } else setError(result.error);
   };
 
   return (
     <div className="border border-ink/12 bg-white/50 p-6 text-sm">
-      <p className="eyebrow">Weather or a change of plan</p>
-      <p className="mt-3 text-xs leading-relaxed text-smoke">{rainPolicy}</p>
+      <p className="eyebrow">{mn ? "Цаг агаар эсвэл төлөвлөгөөний өөрчлөлт" : "Weather or a change of plan"}</p>
+      <p className="mt-3 text-xs leading-relaxed text-smoke">{localizeSiteContent(rainPolicy, mn ? "mn" : "en")}</p>
 
       {done ? (
         <p className="mt-4 border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] leading-relaxed text-emerald-800">
@@ -63,7 +66,7 @@ export function ReschedulePanel({
         <div className="mt-4 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="label">New date</label>
+              <label className="label">{mn ? "Шинэ өдөр" : "New date"}</label>
               <input
                 type="date"
                 className="field py-2 text-xs"
@@ -72,13 +75,13 @@ export function ReschedulePanel({
               />
             </div>
             <div>
-              <label className="label">Preferred time</label>
+              <label className="label">{mn ? "Тохиромжтой цаг" : "Preferred time"}</label>
               <select
                 className="field py-2 text-xs"
                 value={preferredTime}
                 onChange={(event) => setPreferredTime(event.target.value)}
               >
-                {["07:00", "09:00", "11:00", "14:00", "16:00", "18:00", "Golden hour (sunset)"].map((slot) => (
+                {["07:00", "09:00", "11:00", "14:00", "16:00", "18:00", mn ? "Алтан цаг (нар жаргах үе)" : "Golden hour (sunset)"].map((slot) => (
                   <option key={slot} value={slot}>
                     {slot}
                   </option>
@@ -87,18 +90,18 @@ export function ReschedulePanel({
             </div>
           </div>
           <div>
-            <label className="label">Anything we should know?</label>
+            <label className="label">{mn ? "Бидний мэдэх шаардлагатай зүйл байна уу?" : "Anything we should know?"}</label>
             <textarea
               rows={2}
               className="field resize-none text-xs"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Forecast, illness, travel plans…"
+              placeholder={mn ? "Цаг агаарын мэдээ, өвчин, аяллын төлөвлөгөө…" : "Forecast, illness, travel plans…"}
             />
           </div>
           <label className="flex items-center gap-2 text-[11px] text-smoke">
             <input type="checkbox" checked={weather} onChange={(event) => setWeather(event.target.checked)} />
-            This is because of the weather
+            {mn ? "Цаг агаараас шалтгаалсан" : "This is because of the weather"}
           </label>
           <div className="flex flex-wrap gap-2">
             <button
@@ -107,18 +110,18 @@ export function ReschedulePanel({
               disabled={busy}
               className="btn-dark py-2.5 text-[9px] disabled:opacity-50"
             >
-              {busy ? "Sending…" : "Request new date"}
+              {busy ? (mn ? "Илгээж байна…" : "Sending…") : (mn ? "Шинэ өдөр хүсэх" : "Request new date")}
             </button>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="text-[9px] uppercase tracking-[0.14em] text-smoke"
             >
-              Cancel
+              {mn ? "Болих" : "Cancel"}
             </button>
           </div>
           <p className="text-[10px] leading-relaxed text-smoke/70">
-            Nothing moves until Mara approves the new time — you will get a notification either way.
+            {mn ? "Мара шинэ цагийг зөвшөөрсний дараа өөрчлөлт хүчинтэй болно. Ямар ч тохиолдолд танд мэдэгдэнэ." : "Nothing moves until Mara approves the new time — you will get a notification either way."}
           </p>
         </div>
       ) : (
@@ -128,7 +131,7 @@ export function ReschedulePanel({
             onClick={() => setOpen(true)}
             className="btn-dark py-2.5 text-[9px]"
           >
-            Request a new date
+            {mn ? "Шинэ өдөр хүсэх" : "Request a new date"}
           </button>
           <a
             href={`https://wa.me/${whatsapp}`}

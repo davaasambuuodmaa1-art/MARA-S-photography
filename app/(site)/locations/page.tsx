@@ -7,6 +7,8 @@ import {
   locationStyles,
 } from "@/lib/data";
 import { formatAUD } from "@/lib/utils";
+import { currentSiteLocale } from "@/lib/current-site-locale";
+import { localizeSiteContent } from "@/lib/site-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -16,15 +18,16 @@ export const metadata = {
     "The Sydney locations Mara knows best — from Bondi at first light to the Blue Mountains — with travel fees and permit notes.",
 };
 
-function permitLabel(status: string, approved: number) {
-  if (status === "approved" && approved) return "Commercial photography approved";
-  if (status === "not_required") return "No permit required";
-  if (status === "required") return "Permit required — arranged before your session";
-  return "Permit to be confirmed";
+function permitLabel(status: string, approved: number, mn: boolean) {
+  if (status === "approved" && approved) return mn ? "Арилжааны зураг авалт зөвшөөрөгдсөн" : "Commercial photography approved";
+  if (status === "not_required") return mn ? "Зөвшөөрөл шаардлагагүй" : "No permit required";
+  if (status === "required") return mn ? "Зөвшөөрөл шаардлагатай — зураг авалтаас өмнө зохицуулна" : "Permit required — arranged before your session";
+  return mn ? "Зөвшөөрлийг баталгаажуулна" : "Permit to be confirmed";
 }
 
 export default async function LocationsPage() {
-  const [locations, settings] = await Promise.all([getLocations(), getSiteSettings()]);
+  const [locations, settings, locale] = await Promise.all([getLocations(), getSiteSettings(), currentSiteLocale()]);
+  const mn = locale === "mn";
   const areas = [...new Set(locations.map((location) => location.area))];
 
   return (
@@ -32,19 +35,20 @@ export default async function LocationsPage() {
       <section className="border-b border-ink/10 pb-14 pt-36 lg:pb-20 lg:pt-44">
         <div className="mx-auto max-w-[1680px] px-6 sm:px-10 lg:px-16">
           <Reveal>
-            <p className="eyebrow">Locations</p>
+            <p className="eyebrow">{mn ? "Байршлууд" : "Locations"}</p>
             <h1 className="display mt-5 max-w-4xl text-balance text-[clamp(2.8rem,6.4vw,5.6rem)] text-ink">
-              Sydney, photographed <span className="editorial text-burgundy">on location</span>
+              {mn ? <>Сиднейг <span className="editorial text-burgundy">байршил дээр нь</span> гэрэл зурагт буулгав</> : <>Sydney, photographed <span className="editorial text-burgundy">on location</span></>}
             </h1>
             <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-smoke">
-              There is no studio. Mara travels to you — a headland at sunrise, a terrace in Paddington,
-              a stretch of coast you have never shown anyone. These are the places she knows best.
+              {mn
+                ? "Студи байхгүй. Мара таны сонгосон газар очно — нар мандах үеийн хошуу, Пэддингтоны дэнж, эсвэл таны онцгой гэж боддог далайн эрэг. Эдгээр нь түүний сайн мэдэх газрууд."
+                : "There is no studio. Mara travels to you — a headland at sunrise, a terrace in Paddington, a stretch of coast you have never shown anyone. These are the places she knows best."}
             </p>
           </Reveal>
           <Reveal delay={120} className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-[10px] uppercase tracking-[0.22em] text-smoke">
-            <span>{locations.length} locations</span>
-            <span>{areas.join(" · ")}</span>
-            <span>Travel quoted before you book</span>
+            <span>{locations.length} {mn ? "байршил" : "locations"}</span>
+            <span>{areas.map((area) => localizeSiteContent(area, locale)).join(" · ")}</span>
+            <span>{mn ? "Аяллын зардлыг захиалахаас өмнө тооцно" : "Travel quoted before you book"}</span>
           </Reveal>
         </div>
       </section>
@@ -64,7 +68,7 @@ export default async function LocationsPage() {
                     {cover ? (
                       <img
                         src={cover}
-                        alt={location.name}
+                        alt={localizeSiteContent(location.name, locale)}
                         loading="lazy"
                         className="grade h-full w-full object-cover transition-transform duration-[1400ms] ease-luxe group-hover:scale-105"
                       />
@@ -72,12 +76,12 @@ export default async function LocationsPage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-transparent to-transparent opacity-80" />
                     <div className="absolute inset-x-0 bottom-0 p-5">
                       <p className="text-[9px] uppercase tracking-[0.28em] text-cream/70">
-                        {String(index + 1).padStart(2, "0")} · {location.area}
+                        {String(index + 1).padStart(2, "0")} · {localizeSiteContent(location.area, locale)}
                       </p>
-                      <p className="mt-1 font-serif text-2xl text-cream">{location.name}</p>
+                      <p className="mt-1 font-serif text-2xl text-cream">{localizeSiteContent(location.name, locale)}</p>
                     </div>
                     <span className="absolute right-4 top-4 bg-cream/95 px-2.5 py-1 text-[8px] uppercase tracking-[0.18em] text-ink">
-                      {location.travel_fee > 0 ? `+${formatAUD(location.travel_fee)} travel` : "Travel included"}
+                      {location.travel_fee > 0 ? `+${formatAUD(location.travel_fee)} ${mn ? "аяллын зардал" : "travel"}` : (mn ? "Аяллын зардал багтсан" : "Travel included")}
                     </span>
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-4">
@@ -85,11 +89,11 @@ export default async function LocationsPage() {
                       {locationStyles(location).join(" · ")}
                     </p>
                     <span className="shrink-0 text-[9px] uppercase tracking-[0.14em] text-gold opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-                      View →
+                      {mn ? "Үзэх →" : "View →"}
                     </span>
                   </div>
                   <p className="mt-2 text-[10px] leading-relaxed text-smoke/60">
-                    {permitLabel(location.permit_status, location.venue_approved)}
+                    {permitLabel(location.permit_status, location.venue_approved, mn)}
                   </p>
                 </Link>
               </Reveal>
@@ -100,16 +104,18 @@ export default async function LocationsPage() {
         <Reveal className="mt-16 grid gap-8 border-t border-ink/10 pt-12 sm:grid-cols-3">
           {[
             {
-              title: "Travel",
-              body: settings.travelPolicy,
+              title: mn ? "Аялал" : "Travel",
+              body: localizeSiteContent(settings.travelPolicy, locale),
             },
             {
-              title: "Permits & venues",
+              title: mn ? "Зөвшөөрөл ба талбай" : "Permits & venues",
               body:
-                "Every location is checked for council or venue permission before it is confirmed. Nothing is advertised as approved for commercial photography until that check is done.",
+                mn
+                  ? "Байршлыг баталгаажуулахаас өмнө зөвлөл эсвэл талбайн зөвшөөрлийг шалгана. Шалгалт дуусаагүй байхад арилжааны зураг авалтад зөвшөөрөгдсөн гэж мэдээлэхгүй."
+                  : "Every location is checked for council or venue permission before it is confirmed. Nothing is advertised as approved for commercial photography until that check is done.",
             },
             {
-              title: "Weather",
+              title: mn ? "Цаг агаар" : "Weather",
               body: settings.rainPolicy,
             },
           ].map((item) => (
@@ -122,10 +128,10 @@ export default async function LocationsPage() {
 
         <Reveal className="mt-14 flex flex-wrap gap-4 border-t border-ink/10 pt-10">
           <Link href="/book" className="btn-dark">
-            Start a booking
+            {mn ? "Захиалга эхлүүлэх" : "Start a booking"}
           </Link>
           <Link href="/contact" className="btn-outline">
-            Suggest a location
+            {mn ? "Байршил санал болгох" : "Suggest a location"}
           </Link>
         </Reveal>
       </section>
